@@ -80,6 +80,8 @@ export interface Reservation {
   message: string;
   token: string;
   thanked: number;
+  purchased: number;
+  reminder_stage: number;
   created_at: string;
 }
 
@@ -171,4 +173,24 @@ export function getProviders(): AffiliateProvider[] {
 
 export function getActiveProviders(): AffiliateProvider[] {
   return getProviders().filter((p) => p.active);
+}
+
+export interface ReservationContext {
+  reservation: Reservation;
+  item: Item;
+  list: List;
+  recipientName: string | null;
+}
+
+/** Reservierung inkl. Wunsch und Liste über den geheimen Gast-Token. */
+export function getReservationByToken(token: string): ReservationContext | undefined {
+  const db = getDb();
+  const reservation = db.prepare("SELECT * FROM reservations WHERE token = ?").get(token) as Reservation | undefined;
+  if (!reservation) return undefined;
+  const item = db.prepare("SELECT * FROM items WHERE id = ?").get(reservation.item_id) as Item;
+  const list = db.prepare("SELECT * FROM lists WHERE id = ?").get(item.list_id) as List;
+  const rec = list.recipient_id
+    ? (db.prepare("SELECT name FROM recipients WHERE id = ?").get(list.recipient_id) as { name: string } | undefined)
+    : undefined;
+  return { reservation, item, list, recipientName: rec?.name ?? null };
 }

@@ -13,6 +13,7 @@ import {
 import { appUrl, dateDe, euro } from "@/lib/format";
 import { ShareBox } from "@/components/ShareBox";
 import { SubmitButton } from "@/components/SubmitButton";
+import { PhotoWish } from "@/components/PhotoWish";
 import {
   addItem,
   archiveList,
@@ -80,7 +81,12 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
       </section>
 
       <section className="card space-y-3">
-        <h2 className="font-extrabold">Wunsch hinzufügen</h2>
+        <h2 className="font-extrabold">📷 Wunsch per Foto</h2>
+        <PhotoWish listId={list.id} />
+      </section>
+
+      <section className="card space-y-3">
+        <h2 className="font-extrabold">Wunsch per Link oder von Hand</h2>
         <form action={addItem} className="grid gap-3 sm:grid-cols-6">
           <input type="hidden" name="list_id" value={list.id} />
           <div className="sm:col-span-6">
@@ -149,6 +155,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
                   {it.is_group_gift ? <span className="chip">🤝 Gruppengeschenk</span> : null}
                   {it.source === "store" && <span className="chip">🏪 im Laden</span>}
                   {it.source === "ai" && <span className="chip">✨ KI-Idee</span>}
+                  {it.source === "photo" && <span className="chip">📷 per Foto</span>}
                 </div>
                 <div className="muted text-sm">
                   {euro(it.price)} {it.quantity > 1 && `· ${it.quantity}× gewünscht`}
@@ -171,6 +178,8 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
                       <span className="chip chip-ok">
                         ✓ {it.reserved_count}/{it.quantity} reserviert
                         {showNames && ` von ${it.reservations.map((r) => r.guest_name).join(", ")}`}
+                        {it.reservations.length > 0 &&
+                          ` · ${it.reservations.filter((r) => r.purchased).length}/${it.reservations.length} gekauft`}
                       </span>
                     ) : (
                       <span className="muted">noch frei</span>

@@ -88,12 +88,20 @@ Gruppengeschenk und Danke-Liste.
 
 ## 6. Roadmap
 
-- E-Mail-Erinnerungen an Gäste („Feier ist Samstag – hast du schon gekauft?“)
-- PWA / Native App, Push-Benachrichtigungen bei Reservierungen
+**Umgesetzt (v0.2):** Erinnerungen an Gäste (E-Mail 7 und 2 Tage vorher + Kalendereintrag), „gekauft“-Häkchen,
+Reservierungs-Link für jedes Gerät, Wünsche per Foto mit KI-Produkterkennung.
+
+**Als Nächstes vorgemerkt – Feier-Zusage & Einladungskarte:**
+- Gäste sagen auf demselben Link zu/ab („Wir kommen mit 1 Kind“, Allergien, Abholzeit)
+- Gastgeber sieht Gästeliste, Zusagen und wer noch kein Geschenk reserviert hat
+- Einladungskarte mit QR-Code (PDF zum Ausdrucken für Kita-Fächer + Bild für WhatsApp)
+- Ziel: Wishboxx wird das Werkzeug für den ganzen Kindergeburtstag; jede Einladung wirbt neue Eltern
+
+**Weitere Ideen:**
+- PWA / Native App, Push-Benachrichtigungen bei Reservierungen, „Teilen mit Wishboxx“ aus Shop-Apps
 - Co-Admins (Partner/Oma können Liste mitpflegen)
 - Laden-Portal: Spielwarenläden pflegen digitale Kisten, Reservierung → Abholung im Laden
 - Produktdaten via Partner-APIs (Bilder, Live-Preise, Verfügbarkeit)
-- Einladungskarten-Generator mit QR-Code
 
 ## Quellen
 

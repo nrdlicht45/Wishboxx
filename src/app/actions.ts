@@ -27,6 +27,11 @@ import {
   GENDERS,
   getActiveProviders,
 } from "@/lib/repo";
+import { sendMail } from "@/lib/mailer";
+import { recognizeProduct, type RecognizedProduct } from "@/lib/vision";
+import { MAX_UPLOAD_BYTES, saveUpload, sniffImage, UPLOAD_PATH_RE } from "@/lib/uploads";
+import { appUrl, dateDe } from "@/lib/format";
+import { getReservationByToken } from "@/lib/repo";
 import { suggestGifts, type GiftIdea, type SuggestionResult } from "@/lib/suggestions";
 
 export type IdeaWithLink = GiftIdea & { url: string | null };
@@ -241,7 +246,8 @@ export async function addItem(fd: FormData) {
   const user = await requireUser();
   const listId = Number(fd.get("list_id"));
   if (!getList(listId, user.id)) return;
-  const source = str(fd, "source") === "store" ? "store" : str(fd, "source") === "ai" ? "ai" : "link";
+  const rawSource = str(fd, "source");
+  const source = ["store", "ai", "photo"].includes(rawSource) ? rawSource : "link";
   let url = str(fd, "url", 2000) || null;
   if (url && !isSafeHttpUrl(url)) url = null;
 
@@ -258,7 +264,7 @@ export async function addItem(fd: FormData) {
     description ||= meta.description?.slice(0, 300) ?? "";
   }
   if (!title) title = url ? new URL(url).hostname.replace(/^www\./, "") : "Wunsch";
-  if (image && !isSafeHttpUrl(image)) image = null;
+  if (image && !isSafeHttpUrl(image) && !UPLOAD_PATH_RE.test(image)) image = null;
 
   const quantity = Math.max(1, Math.min(20, Number(fd.get("quantity") || 1)));
   const priority = [1, 2, 3].includes(Number(fd.get("priority"))) ? Number(fd.get("priority")) : 2;
@@ -303,6 +309,30 @@ export async function deleteItem(fd: FormData) {
   if (!getList(listId, user.id)) return;
   getDb().prepare("DELETE FROM items WHERE id = ? AND list_id = ?").run(Number(fd.get("id")), listId);
   revalidatePath(`/lists/${listId}`);
+}
+
+// ---------------- Wunsch per Foto ----------------
+export type PhotoState = {
+  image?: string;
+  product?: RecognizedProduct & { url: string | null };
+  error?: string;
+};
+
+/** Foto hochladen → speichern → Produkt per KI erkennen. Das Anlegen bestätigt der Nutzer danach. */
+export async function recognizePhoto(_: unknown, fd: FormData): Promise<PhotoState> {
+  const user = await requireUser();
+  if (!getList(Number(fd.get("list_id")), user.id)) return { error: "Liste nicht gefunden." };
+  const file = fd.get("photo");
+  if (!(file instanceof File) || file.size === 0) return { error: "Bitte ein Foto auswählen." };
+  if (file.size > MAX_UPLOAD_BYTES) return { error: "Das Foto ist zu groß (max. 5 MB)." };
+  const buf = Buffer.from(await file.arrayBuffer());
+  const kind = sniffImage(buf);
+  if (!kind) return { error: "Bitte ein JPG-, PNG- oder WebP-Foto verwenden." };
+  const image = saveUpload(buf, kind.ext);
+  const result = await recognizeProduct(buf, kind.mime);
+  if (!result.ok) return { image, error: result.error };
+  const url = buildSearchUrl(result.product.search_query, getActiveProviders());
+  return { image, product: { ...result.product, url } };
 }
 
 // ---------------- KI-Vorschläge ----------------
@@ -378,10 +408,42 @@ export async function reserveItem(_: unknown, fd: FormData) {
   const result = tx();
   if ("token" in result && result.token) {
     await rememberGuestToken(listToken, result.token);
+    if (email) await sendReservationMail(result.token);
     revalidatePath(`/k/${listToken}`);
     return { ok: true, token: result.token };
   }
   return result;
+}
+
+async function sendReservationMail(token: string) {
+  const ctx = getReservationByToken(token);
+  if (!ctx?.reservation.guest_email) return;
+  const { reservation: r, item, list } = ctx;
+  const manage = `${appUrl()}/r/${r.token}`;
+  const what = r.kind === "pledge" ? `deine Zusage über ${r.amount?.toFixed(2)} € für „${item.title}“` : `„${item.title}“`;
+  await sendMail(
+    r.guest_email!,
+    `Reserviert: ${item.title} – ${list.title}`,
+    `Hallo ${r.guest_name},\n\ndanke! ${what} ist für „${list.title}“${list.event_date ? ` am ${dateDe(list.event_date)}` : ""} eingetragen.\n\n` +
+      `Hier kannst du das Geschenk kaufen, als „gekauft“ markieren, einen Kalendereintrag speichern oder die Reservierung aufheben:\n${manage}\n\n` +
+      `Wir erinnern dich kurz vor der Feier, falls du es noch nicht als gekauft markiert hast.\n\nDein Wishboxx-Team`,
+  );
+}
+
+/** Gast markiert „gekauft“ – stoppt Erinnerungen. Funktioniert per Token (E-Mail-Link oder Cookie). */
+export async function togglePurchased(fd: FormData) {
+  const token = str(fd, "token", 40);
+  getDb().prepare("UPDATE reservations SET purchased = 1 - purchased WHERE token = ?").run(token);
+  const ctx = getReservationByToken(token);
+  if (ctx) revalidatePath(`/k/${ctx.list.share_token}`);
+  revalidatePath(`/r/${token}`);
+}
+
+export async function cancelReservationByToken(fd: FormData) {
+  const token = str(fd, "token", 40);
+  const ctx = getReservationByToken(token);
+  getDb().prepare("DELETE FROM reservations WHERE token = ?").run(token);
+  redirect(ctx ? `/k/${ctx.list.share_token}` : "/");
 }
 
 export async function cancelReservation(fd: FormData) {

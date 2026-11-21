@@ -148,6 +148,19 @@ const DEFAULT_PROVIDERS = [
   },
 ];
 
+/** Spalten nachrüsten, die nach dem ersten Release dazukamen. */
+const COLUMN_MIGRATIONS: [table: string, column: string, ddl: string][] = [
+  ["reservations", "purchased", "INTEGER NOT NULL DEFAULT 0"],
+  ["reservations", "reminder_stage", "INTEGER NOT NULL DEFAULT 0"],
+];
+
+function migrate(db: Database.Database) {
+  for (const [table, column, ddl] of COLUMN_MIGRATIONS) {
+    const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+    if (!cols.some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddl}`);
+  }
+}
+
 let instance: Database.Database | null = null;
 
 export function getDb(): Database.Database {
@@ -168,6 +181,7 @@ export function getDb(): Database.Database {
     );
     for (const p of DEFAULT_PROVIDERS) insert.run(p);
   }
+  migrate(db);
   instance = db;
   return db;
 }

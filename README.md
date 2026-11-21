@@ -12,6 +12,7 @@ automatische Affiliate-Monetarisierung.
 **Für Eltern**
 - Mehrere Kinder-/Personenprofile (Alter, Interessen, No-Gos, „hat schon“, Größen)
 - Mehrere Listen je Anlass: Geburtstag, Weihnachten, Ostern, Einschulung, Kommunion …
+- 📷 Wünsche per Foto: Spielzeug im Laden/Prospekt fotografieren → KI erkennt das Produkt
 - Wünsche per Produktlink (Titel/Bild/Preis werden automatisch geladen), als „liegt im Laden“ oder aus KI-Vorschlägen
 - ✨ KI-Ideen (Claude) mit Leitplanken + 🧒 Kindermodus zum Wischen
 - Budget-Rahmen pro Geschenk, Gruppengeschenke mit Fortschrittsbalken
@@ -21,6 +22,8 @@ automatische Affiliate-Monetarisierung.
 **Für Gäste**
 - Kein Account, keine App: Link öffnen → „Ich schenke das“ → Name → fertig
 - Filter „passend zum Budget“, eigene Reservierungen stornierbar
+- „Gekauft ✓“-Häkchen, Kalendereintrag mit Erinnerung, E-Mail-Bestätigung mit Verwaltungs-Link
+- Erinnerungs-Mails 7 und 2 Tage vor der Feier – nur an Gäste, die noch nicht „gekauft“ markiert haben
 
 **Für den Betreiber (Admin)**
 - Affiliate-Partner verwalten (Domains, `?tag=`-Parameter oder Deeplink-Vorlage mit `{url}`, Priorität)
@@ -50,6 +53,18 @@ npm run lint    # TypeScript-Check
 npm run build   # Produktions-Build
 ```
 
+## Erinnerungen einrichten
+
+1. SMTP-Zugang in `.env.local` eintragen (`SMTP_HOST`, `SMTP_USER`, …) – z.B. Brevo oder Postmark.
+   Ohne SMTP werden Mails nur ins Server-Log geschrieben.
+2. `CRON_SECRET` setzen und den Endpunkt einmal täglich aufrufen (Railway Cron, GitHub Actions, cron-job.org):
+   ```bash
+   curl -H "Authorization: Bearer $CRON_SECRET" https://deine-domain/api/cron/reminders
+   ```
+   Jede Erinnerungsstufe wird pro Reservierung höchstens einmal verschickt.
+
+Fotos landen in `data/uploads/` (bzw. `UPLOAD_DIR`) – beim Hosting auf dauerhaften Speicher legen.
+
 ## Architektur
 
 ```
@@ -61,17 +76,24 @@ src/
     suggestions.ts  KI-Vorschläge via Claude (structured output) + Fallback
     catalog.ts      regelbasierter Ideenkatalog
     metadata.ts     Open-Graph-Parser mit SSRF-Schutz
+    vision.ts       Produkterkennung aus Fotos (Claude Vision)
+    uploads.ts      Foto-Speicherung, Typprüfung per Magic Bytes
+    reminders.ts    Erinnerungs-Stufen & Kalenderdatei (rein, getestet)
+    mailer.ts       SMTP-Versand (Fallback: Log)
     repo.ts         Datenzugriff & Domain-Logik
   app/
     actions.ts      alle Server Actions
     dashboard, recipients, lists/[id], lists/[id]/ideas   Eltern-Bereich
     k/[token]       öffentliche Gäste-Ansicht
+    r/[token]       Reservierung verwalten (Link aus E-Mail), /ics Kalenderdatei
+    api/cron/reminders  täglicher Erinnerungslauf
     go/[itemId]     Affiliate-Redirect
     admin           Betreiber-Bereich
 ```
 
 ## Datenschutz
 
-An die KI werden nur Alter, Geschlecht, Interessen, No-Gos, „hat schon“ und Listentitel
+Fotos werden vor dem Upload im Browser verkleinert und als neues JPEG gespeichert – dabei gehen
+EXIF-/GPS-Daten verloren. An die KI werden nur Alter, Geschlecht, Interessen, No-Gos, „hat schon“ und Listentitel
 übermittelt – nie Namen oder Geburtsdaten. Gäste-Listen sind per `noindex` vor Suchmaschinen
 geschützt; der Link kann jederzeit zurückgesetzt werden.

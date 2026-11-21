@@ -8,20 +8,28 @@ export function ReserveForm({
   itemId,
   groupGift,
   remaining,
+  hasDate,
 }: {
   listToken: string;
   itemId: number;
   groupGift: boolean;
   remaining: number | null;
+  hasDate: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [state, action] = useActionState(reserveItem, undefined);
 
   if (state && "ok" in state && state.ok) {
     return (
-      <p className="chip chip-ok">
-        🎉 Danke! {groupGift ? "Deine Zusage ist eingetragen." : "Das Geschenk ist für dich reserviert."}
-      </p>
+      <div className="space-y-2">
+        <p className="chip chip-ok">
+          🎉 Danke! {groupGift ? "Deine Zusage ist eingetragen." : "Das Geschenk ist für dich reserviert."}
+        </p>
+        <p className="flex flex-wrap gap-2 text-sm">
+          {hasDate && <a className="btn-ghost" href={`/r/${state.token}/ics`}>📅 Erinnerung in Kalender</a>}
+          <a className="btn-ghost" href={`/r/${state.token}`}>Reservierung verwalten</a>
+        </p>
+      </div>
     );
   }
   if (!open) {
@@ -36,7 +44,7 @@ export function ReserveForm({
       <input type="hidden" name="list_token" value={listToken} />
       <input type="hidden" name="item_id" value={itemId} />
       <input className="input" name="guest_name" required placeholder="Euer Name (z.B. Ben & Mama Julia)" aria-label="Name" />
-      <input className="input" name="guest_email" type="email" placeholder="E-Mail (optional)" aria-label="E-Mail" />
+      <input className="input" name="guest_email" type="email" placeholder="E-Mail für Erinnerung (optional)" aria-label="E-Mail" />
       {groupGift && (
         <input className="input" name="amount" inputMode="decimal" required
           placeholder={remaining != null ? `Betrag in € (noch ${remaining.toFixed(2)} € offen)` : "Betrag in €"}

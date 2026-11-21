@@ -67,3 +67,34 @@ test("Katalog respektiert Alter, No-Gos und Budget", () => {
   assert.ok(!ideas.some((i) => i.title.toLowerCase().includes("lego")));
   assert.match(ideas[0].title, /Dino/);
 });
+
+import { reminderDue, daysUntil, buildIcs } from "../src/lib/reminders.ts";
+import { sniffImage } from "../src/lib/uploads.ts";
+
+test("Erinnerungen: 7 und 2 Tage vorher, nie nach Kauf oder ohne E-Mail", () => {
+  const now = new Date(2026, 11, 1); // 1.12.2026
+  const base = { purchased: false, hasEmail: true, now };
+  assert.equal(daysUntil("2026-12-08", now), 7);
+  assert.equal(reminderDue({ ...base, eventDate: "2026-12-20", currentStage: 0 }), null);
+  assert.equal(reminderDue({ ...base, eventDate: "2026-12-08", currentStage: 0 }), 1);
+  assert.equal(reminderDue({ ...base, eventDate: "2026-12-08", currentStage: 1 }), null);
+  assert.equal(reminderDue({ ...base, eventDate: "2026-12-03", currentStage: 1 }), 2);
+  assert.equal(reminderDue({ ...base, eventDate: "2026-12-03", currentStage: 0 }), 2, "verpasste Stufe 1 wird übersprungen");
+  assert.equal(reminderDue({ ...base, eventDate: "2026-12-03", currentStage: 2 }), null);
+  assert.equal(reminderDue({ ...base, eventDate: "2026-11-30", currentStage: 0 }), null, "Feier vorbei");
+  assert.equal(reminderDue({ ...base, eventDate: "2026-12-03", currentStage: 0, purchased: true }), null);
+  assert.equal(reminderDue({ ...base, eventDate: "2026-12-03", currentStage: 0, hasEmail: false }), null);
+});
+
+test("ICS-Datei: ganztägig mit Alarm 3 Tage vorher, Sonderzeichen escaped", () => {
+  const ics = buildIcs({ uid: "r1", date: "2026-12-31", title: "Party; Emma, 6", description: "x", url: "https://a/r/1" });
+  assert.match(ics, /DTSTART;VALUE=DATE:20261231/);
+  assert.match(ics, /DTEND;VALUE=DATE:20270101/);
+  assert.match(ics, /TRIGGER:-P3D/);
+  assert.match(ics, /SUMMARY:Party\; Emma\\, 6/);
+});
+
+test("Bildtyp wird an Magic Bytes erkannt, nicht an der Endung", () => {
+  assert.equal(sniffImage(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0]))?.ext, "jpg");
+  assert.equal(sniffImage(Buffer.from("<svg onload=alert(1)>"))?.ext, undefined);
+});

@@ -7,7 +7,7 @@ import { getDb } from "@/lib/db";
 import { eventIsOver, getItemsWithStatus, getListByToken, isItemTaken, OCCASIONS } from "@/lib/repo";
 import { dateDe, euro } from "@/lib/format";
 import { ReserveForm } from "@/components/ReserveForm";
-import { cancelReservation } from "@/app/actions";
+import { cancelReservation, togglePurchased } from "@/app/actions";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
@@ -37,6 +37,7 @@ export default async function GuestPage({
   // Freie Wünsche zuerst
   items.sort((a, b) => Number(isItemTaken(a)) - Number(isItemTaken(b)));
 
+  const myRes = (it: (typeof items)[number]) => it.reservations.find((r) => myTokens.has(r.token));
   const mine = items.flatMap((i) => i.reservations.filter((r) => myTokens.has(r.token)).map((r) => ({ r, i })));
 
   return (
@@ -81,23 +82,30 @@ export default async function GuestPage({
         <section className="card space-y-2">
           <h2 className="font-extrabold">Deine Reservierungen</h2>
           {mine.map(({ r, i }) => (
-            <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 border-t pt-2 text-sm first:border-0 first:pt-0"
+              style={{ borderColor: "var(--line)" }}>
               <span>
-                ✓ {i.title} {r.kind === "pledge" && `(${euro(r.amount)})`}
-                {i.url && (
-                  <>
-                    {" · "}
-                    <a className="underline" href={`/go/${i.id}`} target="_blank" rel="sponsored nofollow noopener">
-                      jetzt kaufen*
-                    </a>
-                  </>
-                )}
+                {r.purchased ? "✅" : "🛍️"} <strong>{i.title}</strong> {r.kind === "pledge" && `(${euro(r.amount)})`}
+                {!r.purchased && <span className="muted"> – noch nicht gekauft</span>}
               </span>
-              <form action={cancelReservation}>
-                <input type="hidden" name="list_token" value={token} />
-                <input type="hidden" name="token" value={r.token} />
-                <button className="muted underline" type="submit">Reservierung aufheben</button>
-              </form>
+              <span className="flex flex-wrap items-center gap-2">
+                {i.url && !r.purchased && r.kind === "reserve" && (
+                  <a className="btn" href={`/go/${i.id}`} target="_blank" rel="sponsored nofollow noopener">Kaufen*</a>
+                )}
+                <form action={togglePurchased}>
+                  <input type="hidden" name="token" value={r.token} />
+                  <button className={r.purchased ? "chip chip-ok" : "btn-ghost"} type="submit">
+                    {r.purchased ? "✓ gekauft" : "Gekauft ✓"}
+                  </button>
+                </form>
+                {list.event_date && <a className="btn-ghost" href={`/r/${r.token}/ics`} title="Kalender-Erinnerung">📅</a>}
+                <Link className="muted underline" href={`/r/${r.token}`}>verwalten</Link>
+                <form action={cancelReservation}>
+                  <input type="hidden" name="list_token" value={token} />
+                  <input type="hidden" name="token" value={r.token} />
+                  <button className="muted underline" type="submit">aufheben</button>
+                </form>
+              </span>
             </div>
           ))}
           {list.payment_hint && mine.some((m) => m.r.kind === "pledge") && (
@@ -116,9 +124,10 @@ export default async function GuestPage({
       <section className="grid gap-3 sm:grid-cols-2">
         {items.map((it) => {
           const taken = !hideStatus && isItemTaken(it);
+          const mineR = myRes(it);
           const remaining = it.is_group_gift && it.price != null ? Math.max(0, it.price - it.pledged_sum) : null;
           return (
-            <article key={it.id} className={`card flex flex-col gap-2 ${taken ? "opacity-50" : ""}`}>
+            <article key={it.id} className={`card flex flex-col gap-2 ${taken && !mineR ? "opacity-50" : ""}`}>
               <div className="flex gap-3">
                 {it.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -155,10 +164,16 @@ export default async function GuestPage({
                 <p className="muted text-xs">{it.quantity - it.reserved_count} von {it.quantity} noch frei</p>
               )}
               <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
-                {taken ? (
-                  <span className="chip chip-ok">✓ Schon vergeben</span>
-                ) : hideStatus ? null : (
-                  <ReserveForm listToken={token} itemId={it.id} groupGift={!!it.is_group_gift} remaining={remaining} />
+                {mineR && (
+                  <>
+                    <span className="chip chip-ok">✓ Von dir {it.is_group_gift ? "unterstützt" : "reserviert"}</span>
+                    {list.event_date && <a className="btn-ghost" href={`/r/${mineR.token}/ics`}>📅 Erinnerung</a>}
+                    <Link className="btn-ghost" href={`/r/${mineR.token}`}>Reservierung verwalten</Link>
+                  </>
+                )}
+                {!mineR && taken && <span className="chip chip-ok">✓ Schon vergeben</span>}
+                {!taken && !hideStatus && !(mineR && !it.is_group_gift) && (
+                  <ReserveForm listToken={token} itemId={it.id} groupGift={!!it.is_group_gift} remaining={remaining} hasDate={!!list.event_date} />
                 )}
                 {it.url && (
                   <a href={`/go/${it.id}`} target="_blank" rel="sponsored nofollow noopener" className="btn-ghost">
