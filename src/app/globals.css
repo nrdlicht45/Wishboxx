@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #fff6ed;
+  --color-brand-100: #ffe9d3;
+  --color-brand-200: #ffcfa5;
+  --color-brand-400: #ff8a3d;
+  --color-brand-500: #f9681a;
+  --color-brand-600: #e04e0c;
+  --color-brand-700: #b93a0d;
+  --color-mint-100: #dcf7ec;
+  --color-mint-600: #12805c;
+  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --bg: #fffaf5;
+  --card: #ffffff;
+  --ink: #2b2118;
+  --muted: #7a6a5c;
+  --line: #f0e4d8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1512;
+    --card: #241d18;
+    --ink: #f6ede4;
+    --muted: #b8a797;
+    --line: #3a2f27;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+@layer components {
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 1.25rem; padding: 1.25rem; }
+  .muted { color: var(--muted); }
+  .input {
+    width: 100%; border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+    border-radius: 0.75rem; padding: 0.55rem 0.8rem; font-size: 0.95rem;
+  }
+  .input:focus { outline: 2px solid var(--color-brand-400); outline-offset: 1px; }
+  .label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+    border-radius: 999px; padding: 0.55rem 1.1rem; font-weight: 700; font-size: 0.95rem;
+    background: var(--color-brand-500); color: white; transition: background 0.15s;
+  }
+  .btn:hover { background: var(--color-brand-600); }
+  .btn:disabled { opacity: 0.6; cursor: wait; }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; padding: 0.45rem 0.95rem;
+    font-weight: 700; font-size: 0.9rem; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  }
+  .btn-ghost:hover { border-color: var(--color-brand-400); }
+  .chip { display: inline-block; border-radius: 999px; padding: 0.1rem 0.6rem; font-size: 0.75rem; font-weight: 700;
+    background: var(--color-brand-100); color: var(--color-brand-700); }
+  .chip-ok { background: var(--color-mint-100); color: var(--color-mint-600); }
+}

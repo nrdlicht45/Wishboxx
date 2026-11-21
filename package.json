@@ -1,0 +1,31 @@
+{
+  "name": "wishboxx",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Wishboxx – die digitale Geburtstagskiste: Wunschlisten für Kinder & Familien mit KI-Vorschlägen, Gäste-Reservierung ohne Account und Affiliate-Monetarisierung.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types tests/*.test.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.12.0",
+    "better-sqlite3": "^13.2.0",
+    "next": "^15.5.29",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.5",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "postcss": "^8.5.33",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^5.9.3"
+  }
+}
