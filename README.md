@@ -7,6 +7,12 @@ automatische Affiliate-Monetarisierung.
 
 ➡️ Warum es Wishboxx gibt und was es anders macht als Wishbob & Co.: [docs/MARKTANALYSE.md](docs/MARKTANALYSE.md)
 
+## Screenshots
+
+| Gäste-Ansicht | Kiste verwalten | KI-Ideen | Kindermodus |
+|---|---|---|---|
+| ![](screenshots/6-gaeste-ansicht.png) | ![](screenshots/3-kiste-verwalten.png) | ![](screenshots/4-ki-ideen.png) | ![](screenshots/5-kindermodus.png) |
+
 ## Features
 
 **Für Eltern**
@@ -52,6 +58,11 @@ npm test        # Unit-Tests (Affiliate-Engine, Metadaten, Katalog)
 npm run lint    # TypeScript-Check
 npm run build   # Produktions-Build
 ```
+
+## Online stellen
+
+Kostenlos auf einem Google-Cloud-Gratisserver mit Docker, HTTPS, Auto-Update und Backups:
+**[docs/DEPLOY-GOOGLE-CLOUD.md](docs/DEPLOY-GOOGLE-CLOUD.md)** (Installationsskript: `deploy/install.sh`).
 
 ## Erinnerungen einrichten
 
