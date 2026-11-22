@@ -3,14 +3,31 @@ import Link from "next/link";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
 import { logout } from "./actions";
+import { PwaRegister } from "@/components/PwaRegister";
+import { TabBar } from "@/components/TabBar";
 
 export const metadata: Metadata = {
   title: "Wishboxx – die digitale Geburtstagskiste",
   description:
     "Wunschlisten für Kinder & Familien: KI-Geschenkideen, Reservieren ohne Account, Gruppengeschenke und Danke-Liste.",
+  applicationName: "Wishboxx",
+  appleWebApp: { capable: true, title: "Wishboxx", statusBarStyle: "default" },
+  icons: {
+    icon: [
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
+  formatDetection: { telephone: false },
 };
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#f9681a" };
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#f9681a",
+};
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -24,12 +41,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className="min-h-screen antialiased">
+        <PwaRegister />
         <header className="border-b" style={{ borderColor: "var(--line)" }}>
           <nav className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
             <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2 text-xl font-extrabold">
-              <span aria-hidden>🎁</span> Wishboxx
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icons/icon.svg" alt="" width={32} height={32} className="rounded-lg" /> Wishboxx
             </Link>
-            <div className="flex items-center gap-2 text-sm">
+            <div className={`items-center gap-2 text-sm ${user ? "hidden sm:flex" : "flex"}`}>
               {user ? (
                 <>
                   <Link href="/dashboard" className="btn-ghost">Meine Kisten</Link>
@@ -41,13 +60,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               ) : (
                 <>
                   <Link href="/login" className="btn-ghost">Anmelden</Link>
-                  <Link href="/register" className="btn">Kostenlos starten</Link>
+                  <Link href="/register" className="btn whitespace-nowrap">Starten</Link>
                 </>
               )}
             </div>
           </nav>
         </header>
-        <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+        <main className={`mx-auto max-w-5xl px-4 py-6 ${user ? "pb-28 sm:pb-6" : ""}`}>{children}</main>
+        {user && <TabBar isAdmin={!!user.is_admin} logoutAction={logout} />}
         <footer className="mx-auto max-w-5xl px-4 pb-10 pt-6 text-xs muted">
           * Mit Sternchen markierte Links sind Affiliate-Links. Kaufst du darüber ein, erhält Wishboxx eine kleine
           Provision – für dich ändert sich am Preis nichts. So bleibt Wishboxx für Familien kostenlos.

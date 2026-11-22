@@ -4,10 +4,11 @@ import { SubmitButton } from "./SubmitButton";
 
 type Action = (state: unknown, fd: FormData) => Promise<{ error?: string } | undefined>;
 
-export function AuthForm({ action, mode }: { action: Action; mode: "login" | "register" }) {
+export function AuthForm({ action, mode, next }: { action: Action; mode: "login" | "register"; next?: string }) {
   const [state, formAction] = useActionState(action, undefined);
   return (
     <form action={formAction} className="card mx-auto max-w-md space-y-4">
+      {next && <input type="hidden" name="next" value={next} />}
       <h1 className="text-2xl font-extrabold">{mode === "login" ? "Willkommen zurück" : "Konto erstellen"}</h1>
       {mode === "register" && (
         <div>

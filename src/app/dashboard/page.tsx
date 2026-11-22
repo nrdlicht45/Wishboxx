@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { ageFromBirthdate, getLists, getRecipients, OCCASIONS } from "@/lib/repo";
 import { dateDe } from "@/lib/format";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 const OCC_ICON: Record<string, string> = {
   birthday: "🎂", christmas: "🎄", easter: "🐣", school: "🎒", communion: "🕊️", baby: "🍼", other: "🎁",
@@ -20,6 +21,8 @@ export default async function Dashboard() {
         <h1 className="text-3xl font-extrabold">Hallo {user.name.split(" ")[0]} 👋</h1>
         <Link href="/lists/new" className="btn">+ Neue Kiste / Liste</Link>
       </div>
+
+      <InstallPrompt />
 
       <section>
         <div className="mb-3 flex items-center justify-between">

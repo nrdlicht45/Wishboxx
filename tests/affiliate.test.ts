@@ -98,3 +98,13 @@ test("Bildtyp wird an Magic Bytes erkannt, nicht an der Endung", () => {
   assert.equal(sniffImage(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0]))?.ext, "jpg");
   assert.equal(sniffImage(Buffer.from("<svg onload=alert(1)>"))?.ext, undefined);
 });
+
+import { parseSharedContent } from "../src/lib/share.ts";
+
+test("Geteilter Text aus Shop-Apps wird in Link und Titel zerlegt", () => {
+  const a = parseSharedContent({ text: "Schau mal, was ich bei Amazon gefunden habe: LEGO Friends Pferdestall https://amzn.eu/d/abc123" });
+  assert.equal(a.url, "https://amzn.eu/d/abc123");
+  assert.equal(a.title, "LEGO Friends Pferdestall");
+  const b = parseSharedContent({ title: "Puzzle", url: "https://www.mytoys.de/p/1", text: "" });
+  assert.deepEqual(b, { url: "https://www.mytoys.de/p/1", title: "Puzzle" });
+});

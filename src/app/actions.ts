@@ -70,7 +70,7 @@ export async function register(_: unknown, fd: FormData) {
     .prepare("INSERT INTO users (email, name, password_hash, is_admin) VALUES (?, ?, ?, ?)")
     .run(email, name, hashPassword(password), isAdmin ? 1 : 0);
   await createSession(Number(info.lastInsertRowid));
-  redirect("/dashboard");
+  redirect(safeNext(fd));
 }
 
 export async function login(_: unknown, fd: FormData) {
@@ -83,7 +83,13 @@ export async function login(_: unknown, fd: FormData) {
     return { error: "E-Mail oder Passwort ist falsch." };
   }
   await createSession(user.id);
-  redirect("/dashboard");
+  redirect(safeNext(fd));
+}
+
+/** Nur interne Pfade als Rücksprungziel zulassen (kein Open Redirect). */
+function safeNext(fd: FormData): string {
+  const next = str(fd, "next", 2000);
+  return next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/dashboard";
 }
 
 export async function logout() {
@@ -309,6 +315,12 @@ export async function deleteItem(fd: FormData) {
   if (!getList(listId, user.id)) return;
   getDb().prepare("DELETE FROM items WHERE id = ? AND list_id = ?").run(Number(fd.get("id")), listId);
   revalidatePath(`/lists/${listId}`);
+}
+
+/** Aus dem „Teilen“-Menü einer anderen App: Wunsch anlegen und zur Liste springen. */
+export async function addSharedItem(fd: FormData) {
+  await addItem(fd);
+  redirect(`/lists/${Number(fd.get("list_id"))}`);
 }
 
 // ---------------- Wunsch per Foto ----------------

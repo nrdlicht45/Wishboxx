@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#f9681a"/>
+  <g transform="translate(256 270)">
+    <!-- Schleife -->
+    <path d="M0 -92 C -40 -170 -130 -150 -110 -100 C -95 -70 -40 -80 0 -92 Z" fill="#fff6ed"/>
+    <path d="M0 -92 C 40 -170 130 -150 110 -100 C 95 -70 40 -80 0 -92 Z" fill="#fff6ed"/>
+    <!-- Deckel -->
+    <rect x="-140" y="-96" width="280" height="62" rx="14" fill="#ffffff"/>
+    <!-- Kiste -->
+    <rect x="-118" y="-34" width="236" height="150" rx="14" fill="#ffe9d3"/>
+    <!-- Band -->
+    <rect x="-22" y="-96" width="44" height="212" fill="#b93a0d"/>
+  </g>
+</svg>

@@ -98,7 +98,8 @@ Reservierungs-Link für jedes Gerät, Wünsche per Foto mit KI-Produkterkennung.
 - Ziel: Wishboxx wird das Werkzeug für den ganzen Kindergeburtstag; jede Einladung wirbt neue Eltern
 
 **Weitere Ideen:**
-- PWA / Native App, Push-Benachrichtigungen bei Reservierungen, „Teilen mit Wishboxx“ aus Shop-Apps
+- Native App für Eltern (React Native/Expo) für App Store & Google Play: Push bei neuen Reservierungen,
+  „Teilen → Wishboxx“ auch auf dem iPhone (die installierbare Web-App mit Teilen-Menü auf Android ist umgesetzt)
 - Co-Admins (Partner/Oma können Liste mitpflegen)
 - Laden-Portal: Spielwarenläden pflegen digitale Kisten, Reservierung → Abholung im Laden
 - Produktdaten via Partner-APIs (Bilder, Live-Preise, Verfügbarkeit)

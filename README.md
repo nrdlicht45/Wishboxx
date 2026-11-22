@@ -13,6 +13,18 @@ automatische Affiliate-Monetarisierung.
 |---|---|---|---|
 | ![](screenshots/6-gaeste-ansicht.png) | ![](screenshots/3-kiste-verwalten.png) | ![](screenshots/4-ki-ideen.png) | ![](screenshots/5-kindermodus.png) |
 
+## Als App aufs Handy (PWA)
+
+Wishboxx ist eine installierbare Web-App:
+- **iPhone:** in Safari öffnen → Teilen ⬆️ → „Zum Home-Bildschirm“
+- **Android:** in Chrome öffnen → „App installieren“ (die App zeigt auch selbst einen Knopf dafür)
+
+Danach startet Wishboxx mit eigenem Icon, ohne Browserleiste und mit Tab-Leiste unten. Auf Android erscheint
+Wishboxx zusätzlich im **„Teilen“-Menü** anderer Apps (Amazon, Shop-Apps, Browser): Produkt teilen →
+Kiste wählen → fertig. Ohne Netz zeigt die App eine Offline-Seite statt einer Fehlermeldung.
+
+Gäste brauchen weiterhin **keine** App – sie öffnen einfach den geteilten Link.
+
 ## Features
 
 **Für Eltern**
