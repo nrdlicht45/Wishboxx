@@ -214,3 +214,33 @@ export function getListStats(listId: number) {
     groups: groups.map((g) => ({ title: g.title, pct: Math.min(100, Math.round((g.pledged_sum / g.price!) * 100)) })),
   };
 }
+
+// ---------- Merkzettel ----------
+export interface Memo {
+  id: number;
+  recipient_id: number;
+  title: string;
+  url: string | null;
+  from_item: string;
+  done: number;
+  created_at: string;
+}
+
+export function getMemos(recipientId: number, includeDone = false): Memo[] {
+  return getDb()
+    .prepare(`SELECT * FROM memos WHERE recipient_id = ? ${includeDone ? "" : "AND done = 0"} ORDER BY created_at DESC`)
+    .all(recipientId) as Memo[];
+}
+
+/** Zählt die Merkzettel-Einträge pro Kind eines Nutzers (für die Übersicht). */
+export function getMemoCounts(userId: number): Record<number, number> {
+  const rows = getDb()
+    .prepare(
+      `SELECT m.recipient_id AS id, COUNT(*) AS c FROM memos m JOIN recipients r ON r.id = m.recipient_id
+       WHERE r.user_id = ? AND m.done = 0 GROUP BY m.recipient_id`,
+    )
+    .all(userId) as { id: number; c: number }[];
+  return Object.fromEntries(rows.map((r) => [r.id, r.c]));
+}
+
+export { nextVolume, nextYearTitle, plusOneYear } from "./yearly";

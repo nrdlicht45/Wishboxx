@@ -32,6 +32,11 @@ import {
   GENDERS,
   getActiveProviders,
   recipientAge,
+  getMemos,
+  nextYearTitle,
+  plusOneYear,
+  type Item,
+  type Recipient,
 } from "@/lib/repo";
 import { mailConfigured, sendMail } from "@/lib/mailer";
 import { recognizeProduct, type RecognizedProduct } from "@/lib/vision";
@@ -582,45 +587,174 @@ export async function quickStart(_: unknown, fd: FormData): Promise<{ error?: st
   const user = await getOrCreateGuest(str(fd, "parent", 60));
   const db = getDb();
 
+  // Vorhandenes Kind wiederverwenden (Auswahl im Schnellstart oder gleicher Name),
+  // damit „hat schon“ und Merkzettel erhalten bleiben
+  const gender = pick(str(fd, "gender"), GENDERS, "none");
+  let rec =
+    getRecipient(Number(fd.get("recipient_id") || 0), user.id) ??
+    (db.prepare("SELECT * FROM recipients WHERE user_id = ? AND lower(name) = lower(?)").get(user.id, name) as Recipient | undefined);
+
   // Bei Geburtstag mit Datum lässt sich der Geburtstag genau ableiten: Feier-Datum minus Alter
   let birthdate: string | null = null;
   if (occasion === "birthday" && eventDate && age != null) {
     birthdate = `${Number(eventDate.slice(0, 4)) - Math.round(age)}${eventDate.slice(4)}`;
   }
-  const rec = db
-    .prepare(
-      `INSERT INTO recipients (user_id, name, birthdate, gender, interests, avoid, age_hint) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(user.id, name, birthdate, pick(str(fd, "gender"), GENDERS, "none"), interests, avoid,
-      age != null && !birthdate ? Math.round(age) : null);
+  if (rec) {
+    const merged = (a: string, b: string) => Array.from(new Set([...csv(a), ...csv(b)])).join(", ");
+    db.prepare(
+      `UPDATE recipients SET interests = ?, avoid = ?, gender = CASE WHEN ? = 'none' THEN gender ELSE ? END,
+       birthdate = COALESCE(birthdate, ?), age_hint = CASE WHEN birthdate IS NULL AND ? IS NOT NULL THEN ? ELSE age_hint END WHERE id = ?`,
+    ).run(merged(rec.interests, interests), merged(rec.avoid, avoid), gender, gender, birthdate,
+      age, age != null ? Math.round(age) : null, rec.id);
+  } else {
+    const info = db
+      .prepare(`INSERT INTO recipients (user_id, name, birthdate, gender, interests, avoid, age_hint) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run(user.id, name, birthdate, gender, interests, avoid, age != null && !birthdate ? Math.round(age) : null);
+    rec = getRecipient(Number(info.lastInsertRowid), user.id);
+  }
+  rec = getRecipient(rec!.id, user.id)!;
+
   const turning = occasion === "birthday" && age != null ? Math.round(age) : null;
   const list = db
     .prepare(
       `INSERT INTO lists (user_id, recipient_id, title, occasion, event_date, share_token, budget_min, budget_max)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(user.id, rec.lastInsertRowid, defaultTitle(name, occasion, turning), occasion, eventDate, randomToken(9), budgetMin, budgetMax);
+    .run(user.id, rec.id, defaultTitle(rec.name, occasion, turning), occasion, eventDate, randomToken(9), budgetMin, budgetMax);
   const listId = Number(list.lastInsertRowid);
+  await fillBox(listId, rec, { age: age != null ? Math.round(age) : recipientAge(rec), occasion, budgetMin, budgetMax });
+  redirect(`/lists/${listId}?neu=1`);
+}
 
-  const ideas = await suggestGifts({
-    age: age != null ? Math.round(age) : null,
-    gender: pick(str(fd, "gender"), GENDERS, "none"),
-    interests: csv(interests),
-    avoid: csv(avoid),
-    owned: [],
-    sizes: "",
-    occasion,
-    budgetMin,
-    budgetMax,
-    existingItems: [],
-  });
+/**
+ * Füllt eine Boxx: 1. Merkzettel des Kindes, 2. übernommene Wünsche, 3. KI-Ideen.
+ * Die KI kennt „hat schon“ und bevorzugt Fortsetzungen zu bereits Geschenktem.
+ */
+async function fillBox(
+  listId: number,
+  rec: Recipient,
+  opts: {
+    age: number | null;
+    occasion: string;
+    budgetMin: number | null;
+    budgetMax: number | null;
+    carry?: Item[];
+    received?: string[];
+  },
+) {
+  const db = getDb();
   const providers = getActiveProviders();
+  let sort = 0;
   const ins = db.prepare(
-    `INSERT INTO items (list_id, title, description, url, price, source, sort) VALUES (?, ?, ?, ?, ?, 'ai', ?)`,
+    `INSERT INTO items (list_id, title, description, url, image_url, price, quantity, priority, source, is_group_gift, sort)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
-  ideas.ideas.forEach((i, n) =>
-    ins.run(listId, i.title, `${i.description} – ${i.reason}`, buildSearchUrl(i.search_query, providers), i.price_estimate || null, n),
+  const memos = getMemos(rec.id);
+  for (const m of memos) {
+    ins.run(listId, m.title, m.from_item ? `Gemerkt nach „${m.from_item}“` : "Vom Merkzettel", m.url ?? buildSearchUrl(m.title, providers),
+      null, null, 1, 1, "memo", 0, sort++);
+  }
+  if (memos.length) db.prepare(`UPDATE memos SET done = 1 WHERE recipient_id = ? AND done = 0`).run(rec.id);
+  for (const i of opts.carry ?? []) {
+    ins.run(listId, i.title, i.description, i.url, i.image_url, i.price, i.quantity, i.priority, i.source, i.is_group_gift, sort++);
+  }
+  const existing = [...memos.map((m) => m.title), ...(opts.carry ?? []).map((i) => i.title)];
+  const count = Math.max(4, 8 - existing.length);
+  const received = opts.received ?? [];
+  const ideas = await suggestGifts(
+    {
+      age: opts.age,
+      gender: rec.gender,
+      interests: csv(rec.interests),
+      avoid: csv(rec.avoid),
+      owned: csv(rec.owned),
+      sizes: rec.sizes,
+      occasion: opts.occasion,
+      budgetMin: opts.budgetMin,
+      budgetMax: opts.budgetMax,
+      existingItems: existing,
+      extraWish: received.length
+        ? `Letztes Mal geschenkt: ${received.join("; ")}. Schlage bevorzugt passende Fortsetzungen oder Erweiterungen vor (z.B. nächster Band einer Buchreihe, Erweiterungsset), aber nichts, was schon vorhanden ist.`
+        : undefined,
+    },
+    count,
   );
+  for (const i of ideas.ideas) {
+    ins.run(listId, i.title, `${i.description} – ${i.reason}`, buildSearchUrl(i.search_query, providers), null,
+      i.price_estimate || null, 1, 2, "ai", 0, sort++);
+  }
+}
+
+// ---------------- Merkzettel ----------------
+export async function addMemo(fd: FormData) {
+  const user = await requireUser();
+  const rec = getRecipient(Number(fd.get("recipient_id")), user.id);
+  const title = str(fd, "title", 160);
+  if (!rec || !title) return;
+  const url = str(fd, "url", 2000);
+  getDb()
+    .prepare("INSERT INTO memos (recipient_id, title, url, from_item) VALUES (?, ?, ?, ?)")
+    .run(rec.id, title, url && isSafeHttpUrl(url) ? url : null, str(fd, "from_item", 160));
+  revalidatePath(`/recipients/${rec.id}`);
+  revalidatePath("/dashboard");
+  const back = str(fd, "back", 200);
+  if (back.startsWith("/")) revalidatePath(back);
+}
+
+export async function deleteMemo(fd: FormData) {
+  const user = await requireUser();
+  getDb()
+    .prepare("DELETE FROM memos WHERE id = ? AND recipient_id IN (SELECT id FROM recipients WHERE user_id = ?)")
+    .run(Number(fd.get("id")), user.id);
+  revalidatePath(`/recipients/${fd.get("recipient_id")}`);
+  revalidatePath("/dashboard");
+}
+
+// ---------------- Nächstes Jahr wieder packen ----------------
+export async function packAgain(fd: FormData) {
+  const user = await requireUser();
+  const old = getList(Number(fd.get("id")), user.id);
+  if (!old) return;
+  const rec = old.recipient_id ? getRecipient(old.recipient_id, user.id) : undefined;
+  const items = getItemsWithStatus(old.id);
+  const received = items.filter((i) => i.reservations.length > 0).map((i) => i.title);
+  const carry = items.filter((i) => i.reservations.length === 0);
+  const db = getDb();
+
+  // Erhaltenes ins „hat schon“ des Kindes übernehmen
+  if (rec && received.length) {
+    const owned = Array.from(new Set([...csv(rec.owned), ...received])).join(", ");
+    db.prepare("UPDATE recipients SET owned = ? WHERE id = ?").run(owned, rec.id);
+  }
+  const info = db
+    .prepare(
+      `INSERT INTO lists (user_id, recipient_id, title, occasion, event_date, description, share_token, reveal_mode,
+        budget_min, budget_max, shop_name, shop_address, payment_hint)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(user.id, old.recipient_id, nextYearTitle(old.title), old.occasion, plusOneYear(old.event_date), "", randomToken(9),
+      old.reveal_mode, old.budget_min, old.budget_max, old.shop_name, old.shop_address, old.payment_hint);
+  const listId = Number(info.lastInsertRowid);
+  db.prepare("UPDATE lists SET archived = 1 WHERE id = ?").run(old.id);
+
+  if (rec) {
+    const fresh = getRecipient(rec.id, user.id)!;
+    const age = recipientAge(fresh);
+    await fillBox(listId, fresh, {
+      age: age != null && old.occasion === "birthday" ? age + 1 : age,
+      occasion: old.occasion,
+      budgetMin: old.budget_min,
+      budgetMax: old.budget_max,
+      carry,
+      received,
+    });
+  } else {
+    const ins = db.prepare(
+      `INSERT INTO items (list_id, title, description, url, image_url, price, quantity, priority, source, is_group_gift, sort)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+    carry.forEach((i, n) => ins.run(listId, i.title, i.description, i.url, i.image_url, i.price, i.quantity, i.priority, i.source, i.is_group_gift, n));
+  }
   redirect(`/lists/${listId}?neu=1`);
 }
 

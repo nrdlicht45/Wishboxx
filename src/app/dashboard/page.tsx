@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { recipientAge, eventIsOver, getListStats, getLists, getRecipients, OCCASIONS } from "@/lib/repo";
+import { recipientAge, eventIsOver, getListStats, getLists, getMemoCounts, getRecipients, OCCASIONS } from "@/lib/repo";
 import { daysUntil } from "@/lib/reminders";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { LoginLinkForm } from "@/components/LoginLinkForm";
@@ -24,6 +24,7 @@ function DateTile({ date }: { date: string | null }) {
 export default async function Dashboard() {
   const user = await requireUser();
   const recipients = getRecipients(user.id);
+  const memoCounts = getMemoCounts(user.id);
   const lists = getLists(user.id);
   const active = lists.filter((l) => !l.archived);
   const archived = lists.filter((l) => l.archived);
@@ -140,6 +141,7 @@ export default async function Dashboard() {
                   <span className="block font-semibold">{r.name}</span>
                   <span className="block text-xs muted">
                     {recipientAge(r) != null ? `${recipientAge(r)} Jahre` : "Alter offen"}
+                    {memoCounts[r.id] ? ` · ${memoCounts[r.id]} gemerkt` : ""}
                   </span>
                 </span>
               </Link>

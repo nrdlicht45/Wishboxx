@@ -9,7 +9,7 @@ export function TabBar({ isAdmin, logoutAction }: { isAdmin: boolean; logoutActi
   const tabs = [
     { href: "/dashboard", icon: "home", label: "Meine Boxx", active: path === "/dashboard" || (path.startsWith("/lists/") && path !== "/lists/new") },
     { href: "/start", icon: "plus", label: "Neue Boxx", active: path === "/start" || path === "/lists/new" },
-    { href: "/recipients/new", icon: "users", label: "Familie", active: path.startsWith("/recipients") },
+    { href: "/familie", icon: "users", label: "Familie", active: path === "/familie" || path.startsWith("/recipients") },
     ...(isAdmin ? [{ href: "/admin", icon: "settings", label: "Admin", active: path.startsWith("/admin") }] : []),
   ];
   const style = (active: boolean) => ({ color: active ? "var(--violet)" : "var(--muted)" });

@@ -37,9 +37,20 @@ function Finish() {
   );
 }
 
-export function QuickStart() {
+export interface KnownChild {
+  id: number;
+  name: string;
+  age: number | null;
+  gender: string;
+  interests: string;
+  avoid: string;
+  memos: number;
+}
+
+export function QuickStart({ known = [] }: { known?: KnownChild[] }) {
   const [state, action] = useActionState(quickStart, undefined);
   const [step, setStep] = useState(0);
+  const [childId, setChildId] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("none");
@@ -49,6 +60,16 @@ export function QuickStart() {
   const [interests, setInterests] = useState<string[]>([]);
   const [own, setOwn] = useState("");
   const [nogos, setNogos] = useState<string[]>([]);
+  const pickChild = (c: KnownChild | null) => {
+    setChildId(c?.id ?? null);
+    setName(c?.name ?? "");
+    setAge(c?.age != null ? String(occasion === "birthday" ? c.age + 1 : c.age) : "");
+    setGender(c?.gender ?? "none");
+    const list = (c?.interests ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+    setInterests(list.filter((x) => INTERESTS.includes(x)));
+    setOwn(list.filter((x) => !INTERESTS.includes(x)).join(", "));
+    setNogos((c?.avoid ?? "").split(",").map((x) => x.trim()).filter((x) => NOGOS.includes(x)));
+  };
   const toggle = (arr: string[], set: (v: string[]) => void, v: string) => set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   const who = name.trim() || "das Kind";
   const canNext = step === 0 ? name.trim().length > 0 : true;
@@ -56,6 +77,7 @@ export function QuickStart() {
   return (
     <form action={action} className="mx-auto max-w-xl space-y-6">
       <input type="hidden" name="name" value={name} />
+      <input type="hidden" name="recipient_id" value={childId ?? ""} />
       <input type="hidden" name="age" value={age} />
       <input type="hidden" name="gender" value={gender} />
       <input type="hidden" name="occasion" value={occasion} />
@@ -73,10 +95,29 @@ export function QuickStart() {
       {step === 0 && (
         <section className="space-y-5">
           <h1 className="text-3xl leading-tight sm:text-4xl">Für <span className="g">wen</span> packen wir die Boxx?</h1>
+          {known.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Vorhandenes Kind wählen">
+                {known.map((c) => (
+                  <Chip key={c.id} on={childId === c.id} onClick={() => pickChild(childId === c.id ? null : c)}>
+                    {c.name}{c.age != null ? ` (${c.age})` : ""}
+                  </Chip>
+                ))}
+                <Chip on={childId === null} onClick={() => pickChild(null)}>+ Neues Kind</Chip>
+              </div>
+              {childId !== null && (
+                <p className="muted text-sm">
+                  Wir nutzen {name}s Profil: Interessen, „hat schon“
+                  {(known.find((c) => c.id === childId)?.memos ?? 0) > 0 &&
+                    ` und ${known.find((c) => c.id === childId)!.memos} Einträge vom Merkzettel`}.
+                </p>
+              )}
+            </div>
+          )}
           <div>
             <label className="label" htmlFor="qs-name">Name des Kindes</label>
             <input id="qs-name" className="input text-lg" autoFocus autoComplete="off" placeholder="z.B. Emma"
-              value={name} onChange={(e) => setName(e.target.value)} />
+              value={name} onChange={(e) => { setName(e.target.value); setChildId(null); }} />
           </div>
           <div>
             <label className="label" htmlFor="qs-age">{occasion === "birthday" ? "Wie alt wird es?" : "Wie alt ist es?"}</label>

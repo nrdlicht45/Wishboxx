@@ -105,6 +105,17 @@ CREATE TABLE IF NOT EXISTS clicks (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Merkzettel pro Kind: Ideen und Fortsetzungen fürs nächste Mal
+CREATE TABLE IF NOT EXISTS memos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  recipient_id INTEGER NOT NULL REFERENCES recipients(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  url TEXT,
+  from_item TEXT NOT NULL DEFAULT '',
+  done INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Einmal-Links für die Anmeldung ohne Passwort
 CREATE TABLE IF NOT EXISTS login_tokens (
   token_hash TEXT PRIMARY KEY,

@@ -35,6 +35,14 @@ Gäste brauchen weiterhin **keine** App – sie öffnen einfach den geteilten Li
 
 Neue Wünsche kommen über **ein einziges Feld**: Link einfügen, Stichwort tippen („Lego Pferd“) oder Foto machen.
 
+## Wunsch-Gedächtnis pro Kind
+
+- **Merkzettel:** Bei jedem Wunsch „Fortsetzung merken“ (schlägt z.B. „Band 2“ vor) oder freie Ideen im Kinderprofil
+- **„Nächstes Jahr wieder packen“** an jeder vergangenen oder archivierten Boxx: neue Boxx mit Datum +1 Jahr und
+  Alter +1, offene Wünsche und Merkzettel sind dabei, die KI bevorzugt Fortsetzungen zu Geschenktem
+- Geschenktes landet automatisch in „hat schon“ und wird nie wieder vorgeschlagen
+- Der Schnellstart erkennt vorhandene Kinder und übernimmt Profil und Merkzettel
+
 ## Features
 
 **Für Eltern**

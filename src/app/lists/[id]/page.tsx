@@ -9,7 +9,10 @@ import {
   getLists,
   getRecipient,
   isItemTaken,
+  nextVolume,
+  nextYearTitle,
   OCCASIONS,
+  plusOneYear,
 } from "@/lib/repo";
 import { appUrl, dateDe, euro } from "@/lib/format";
 import { ShareBox } from "@/components/ShareBox";
@@ -17,7 +20,9 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { PhotoWish } from "@/components/PhotoWish";
 import { LoginLinkForm } from "@/components/LoginLinkForm";
 import {
+  addMemo,
   archiveList,
+  packAgain,
   releaseReservation,
   smartAdd,
   copyOpenItems,
@@ -82,7 +87,7 @@ export default async function ListPage({
 
       {neu && (
         <div className="banner space-y-1">
-          <p className="display text-xl">{items.length} Ideen sind schon eingepackt.</p>
+          <p className="display text-xl">{items.length} Wünsche sind schon eingepackt.</p>
           <p className="text-sm opacity-95">Tippe bei allem, was nicht passt, auf das ✕ – und teile die Boxx dann oben über „Teilen“.</p>
         </div>
       )}
@@ -122,6 +127,7 @@ export default async function ListPage({
                   {it.source === "store" && <span className="chip"><Icon name="store" size={13} /> im Laden</span>}
                   {it.source === "ai" && <span className="chip"><Icon name="sparkle" size={13} /> KI-Idee</span>}
                   {it.source === "photo" && <span className="chip"><Icon name="camera" size={13} /> per Foto</span>}
+                  {it.source === "memo" && <span className="chip"><Icon name="bulb" size={13} /> vom Merkzettel</span>}
                 </div>
                 <div className="muted text-sm">
                   {euro(it.price)} {it.quantity > 1 && `· ${it.quantity}× gewünscht`}
@@ -149,6 +155,19 @@ export default async function ListPage({
                       <span className="muted">noch frei</span>
                     )}
                   </div>
+                )}
+                {recipient && (
+                  <details className="text-sm">
+                    <summary className="muted cursor-pointer">Fortsetzung merken</summary>
+                    <form action={addMemo} className="mt-2 flex flex-wrap gap-2">
+                      <input type="hidden" name="recipient_id" value={recipient.id} />
+                      <input type="hidden" name="from_item" value={it.title} />
+                      <input type="hidden" name="back" value={`/lists/${list.id}`} />
+                      <label className="sr-only" htmlFor={`memo-${it.id}`}>Was soll {recipient.name} nächstes Mal bekommen?</label>
+                      <input className="input flex-1" id={`memo-${it.id}`} name="title" defaultValue={nextVolume(it.title)} />
+                      <SubmitButton className="btn-ghost">Auf {recipient.name}s Merkzettel</SubmitButton>
+                    </form>
+                  </details>
                 )}
                 {showStatus && it.reservations.length > 0 && (
                   <ul className="space-y-1 text-sm">
@@ -297,6 +316,23 @@ export default async function ListPage({
               <SubmitButton className="btn-ghost">Erhaltenes bei {recipient.name} unter „hat schon“ eintragen</SubmitButton>
             </form>
           )}
+        </section>
+      )}
+
+      {(over || !!list.archived) && (
+        <section className="banner space-y-3">
+          <p className="display text-xl">Nächstes Jahr wieder?</p>
+          <p className="text-sm opacity-95">
+            Wir packen die neue Boxx{list.event_date ? ` für ${dateDe(plusOneYear(list.event_date))}` : ""}: offene Wünsche von
+            diesmal{recipient ? `, ${recipient.name}s Merkzettel` : ""} und neue Ideen – bevorzugt Fortsetzungen zu dem, was schon
+            geschenkt wurde. Diese Boxx wandert ins Archiv.
+          </p>
+          <form action={packAgain}>
+            <input type="hidden" name="id" value={list.id} />
+            <SubmitButton pendingText="Wir packen …" className="inline-flex min-h-11 items-center rounded-full bg-white px-5 font-semibold !text-[#2a2140]">
+              „{nextYearTitle(list.title)}“ packen
+            </SubmitButton>
+          </form>
         </section>
       )}
 

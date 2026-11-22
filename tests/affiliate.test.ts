@@ -108,3 +108,21 @@ test("Geteilter Text aus Shop-Apps wird in Link und Titel zerlegt", () => {
   const b = parseSharedContent({ title: "Puzzle", url: "https://www.mytoys.de/p/1", text: "" });
   assert.deepEqual(b, { url: "https://www.mytoys.de/p/1", title: "Puzzle" });
 });
+
+import { nextYearTitle, plusOneYear } from "../src/lib/yearly.ts";
+
+test("Folgejahr: Titel und Datum", () => {
+  assert.equal(nextYearTitle("Emmas 6. Geburtstag"), "Emmas 7. Geburtstag");
+  assert.equal(nextYearTitle("Weihnachten 2026"), "Weihnachten 2027");
+  assert.equal(nextYearTitle("Bens Einschulung"), "Bens Einschulung");
+  assert.equal(plusOneYear("2026-12-12"), "2027-12-12");
+  assert.equal(plusOneYear("2028-02-29"), "2029-02-28");
+  assert.equal(plusOneYear(null), null);
+});
+
+import { nextVolume } from "../src/lib/yearly.ts";
+test("Fortsetzung merken schlägt den nächsten Band vor", () => {
+  assert.equal(nextVolume("Die Schule der magischen Tiere Band 3"), "Die Schule der magischen Tiere Band 4");
+  assert.equal(nextVolume("Tonie Teil 1"), "Tonie Teil 2");
+  assert.equal(nextVolume("Dino-Set"), "Dino-Set – Fortsetzung");
+});
