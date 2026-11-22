@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { ageFromBirthdate, getList, getRecipient } from "@/lib/repo";
+import { getList, getRecipient, recipientAge } from "@/lib/repo";
 import { IdeaGenerator } from "@/components/IdeaGenerator";
 
 export default async function IdeasPage({ params }: { params: Promise<{ id: string }> }) {
@@ -20,7 +20,7 @@ export default async function IdeasPage({ params }: { params: Promise<{ id: stri
       <IdeaGenerator
         listId={list.id}
         defaults={{
-          age: ageFromBirthdate(rec?.birthdate ?? null),
+          age: recipientAge(rec),
           gender: rec?.gender ?? "none",
           interests: rec?.interests ?? "",
           avoid: rec?.avoid ?? "",

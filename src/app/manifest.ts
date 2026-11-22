@@ -20,8 +20,8 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icons/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
-      { name: "Neue Kiste", url: "/lists/new", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-      { name: "Meine Kisten", url: "/dashboard", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Boxx packen", url: "/start", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Meine Boxx", url: "/dashboard", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
     ],
     // Android: Wishboxx erscheint im „Teilen“-Menü anderer Apps (z.B. Amazon, Shop-Apps, Browser)
     share_target: {

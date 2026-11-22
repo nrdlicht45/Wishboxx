@@ -35,7 +35,12 @@ export interface Recipient {
   avoid: string;
   owned: string;
   sizes: string;
+  age_hint: number | null;
 }
+
+/** Alter aus Geburtsdatum, sonst die Angabe aus dem Schnellstart. */
+export const recipientAge = (r: Pick<Recipient, "birthdate" | "age_hint"> | undefined | null): number | null =>
+  r ? ageFromBirthdate(r.birthdate) ?? r.age_hint ?? null : null;
 
 export interface List {
   id: number;

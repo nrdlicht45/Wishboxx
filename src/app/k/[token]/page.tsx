@@ -10,7 +10,20 @@ import { ReserveForm } from "@/components/ReserveForm";
 import { cancelReservation, togglePurchased } from "@/app/actions";
 import { Icon, IconBubble } from "@/components/Icon";
 
-export const metadata: Metadata = { robots: { index: false, follow: false } };
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const list = getListByToken((await params).token);
+  const title = list ? `${list.title} – such dir ein Geschenk aus` : "Wishboxx";
+  const description = list
+    ? `${OCCASIONS[list.occasion]}${list.event_date ? ` am ${dateDe(list.event_date)}` : ""}. Wunsch aussuchen, reservieren, fertig – ganz ohne Anmeldung.`
+    : undefined;
+  return {
+    title,
+    description,
+    robots: { index: false, follow: false },
+    openGraph: { title, description, type: "website", siteName: "Wishboxx", locale: "de_DE" },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
 
 const FILTERS = [
   { key: "", label: "Alle" },
@@ -92,7 +105,7 @@ export default async function GuestPage({
         {list.shop_name && (
           <p className="max-w-md text-sm">
             <Icon name="store" size={16} className="mr-1 inline align-[-3px]" />
-            Die Kiste steht auch bei <strong>{list.shop_name}</strong>
+            Die Boxx steht auch bei <strong>{list.shop_name}</strong>
             {list.shop_address && <span className="muted"> ({list.shop_address})</span>}
           </p>
         )}

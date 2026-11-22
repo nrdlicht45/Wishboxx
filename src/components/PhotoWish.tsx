@@ -17,7 +17,7 @@ async function shrink(file: File, max = 1280): Promise<Blob> {
   );
 }
 
-export function PhotoWish({ listId }: { listId: number }) {
+export function PhotoWish({ listId, compact = false }: { listId: number; compact?: boolean }) {
   const [state, dispatch] = useActionState<PhotoState | undefined, FormData>(recognizePhoto, undefined);
   const [pending, startTransition] = useTransition();
   const [preview, setPreview] = useState<string | null>(null);
@@ -50,13 +50,13 @@ export function PhotoWish({ listId }: { listId: number }) {
   const showForm = !pending && !done && state?.image;
 
   return (
-    <div className="space-y-3">
-      <label className="btn cursor-pointer">
-        <Icon name="camera" /> Foto aufnehmen / auswählen
+    <div className={compact ? "space-y-3 has-[form]:basis-full has-[p.font-semibold]:basis-full" : "space-y-3"}>
+      <label className={`${compact ? "btn-ghost" : "btn"} cursor-pointer`}>
+        <Icon name="camera" /> {compact ? "Foto" : "Foto aufnehmen / auswählen"}
         <input ref={inputRef} type="file" accept="image/*" capture="environment" className="sr-only"
           onChange={(e) => onFile(e.target.files?.[0])} />
       </label>
-      <p className="muted text-xs">
+      <p className={`muted text-xs ${compact ? "hidden" : ""}`}>
         Fotografiere das Spielzeug im Laden, im Prospekt oder auf dem Bildschirm – die KI erkennt das Produkt. Bitte keine
         Personen fotografieren.
       </p>

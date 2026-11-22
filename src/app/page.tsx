@@ -63,7 +63,7 @@ export default async function Home() {
           wieder drei gleiche Puzzles auf dem Gabentisch.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
-          <Link href="/register" className="btn text-lg">Kostenlos starten</Link>
+          <Link href="/start" className="btn text-lg">Boxx packen – in 60 Sekunden</Link>
           <Link href="/login" className="btn-ghost text-lg">Anmelden</Link>
         </div>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-medium">
@@ -89,9 +89,9 @@ export default async function Home() {
       <section className="banner flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="display text-2xl">Bereit für das nächste Fest?</p>
-          <p className="mt-1 text-sm opacity-90">Deine erste Kiste ist in zwei Minuten gepackt.</p>
+          <p className="mt-1 text-sm opacity-90">Drei Fragen, die KI packt die Ideen ein – kein Konto nötig.</p>
         </div>
-        <Link href="/register" className="inline-flex min-h-11 items-center rounded-full bg-white px-5 font-semibold" style={{ color: "#2a2140" }}>
+        <Link href="/start" className="inline-flex min-h-11 items-center rounded-full bg-white px-5 font-semibold" style={{ color: "#2a2140" }}>
           Jetzt starten
         </Link>
       </section>

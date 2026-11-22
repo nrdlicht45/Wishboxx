@@ -105,6 +105,17 @@ CREATE TABLE IF NOT EXISTS clicks (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Einmal-Links für die Anmeldung ohne Passwort
+CREATE TABLE IF NOT EXISTS login_tokens (
+  token_hash TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  name TEXT NOT NULL DEFAULT '',
+  guest_user_id INTEGER,
+  next TEXT NOT NULL DEFAULT '/dashboard',
+  expires_at TEXT NOT NULL,
+  used INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE INDEX IF NOT EXISTS idx_items_list ON items(list_id);
 CREATE INDEX IF NOT EXISTS idx_res_item ON reservations(item_id);
 CREATE INDEX IF NOT EXISTS idx_clicks_provider ON clicks(provider_id);
@@ -152,6 +163,10 @@ const DEFAULT_PROVIDERS = [
 const COLUMN_MIGRATIONS: [table: string, column: string, ddl: string][] = [
   ["reservations", "purchased", "INTEGER NOT NULL DEFAULT 0"],
   ["reservations", "reminder_stage", "INTEGER NOT NULL DEFAULT 0"],
+  // Gast-Konten: Box packen ohne Anmeldung, später per E-Mail-Link sichern
+  ["users", "is_guest", "INTEGER NOT NULL DEFAULT 0"],
+  // Alter ohne Geburtsdatum (Schnellstart fragt nur „Wie alt?“)
+  ["recipients", "age_hint", "INTEGER"],
 ];
 
 function migrate(db: Database.Database) {

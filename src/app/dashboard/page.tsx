@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { ageFromBirthdate, eventIsOver, getListStats, getLists, getRecipients, OCCASIONS } from "@/lib/repo";
+import { recipientAge, eventIsOver, getListStats, getLists, getRecipients, OCCASIONS } from "@/lib/repo";
 import { daysUntil } from "@/lib/reminders";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { LoginLinkForm } from "@/components/LoginLinkForm";
 import { Icon, IconBubble } from "@/components/Icon";
 
 const MONTHS = ["JAN", "FEB", "MÄR", "APR", "MAI", "JUN", "JUL", "AUG", "SEP", "OKT", "NOV", "DEZ"];
@@ -40,29 +41,40 @@ export default async function Dashboard() {
       for (const g of nextStats.groups.filter((x) => x.pct > 0)) done.push({ icon: "users", text: `Gruppengeschenk „${g.title}“ zu ${g.pct} % finanziert` });
     }
     if (nextStats.reminded) done.push({ icon: "bell", text: `${nextStats.reminded} ${nextStats.reminded === 1 ? "Gast wurde" : "Gäste wurden"} ans Kaufen erinnert` });
-    if (!done.length) done.push({ icon: "share", text: "Teile die Kiste – Reservierungen und Erinnerungen laufen dann automatisch" });
+    if (!done.length) done.push({ icon: "share", text: "Teile die Boxx – Reservierungen und Erinnerungen laufen dann automatisch" });
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl leading-tight sm:text-4xl">
-        Hallo {user.name.split(" ")[0]},<br />
-        <span className="g">{next ? "alles im Griff." : "schön, dass du da bist."}</span>
-      </h1>
+      <div className="space-y-1">
+        <p className="text-sm font-semibold muted">Meine Boxx</p>
+        <h1 className="text-3xl leading-tight sm:text-4xl">
+          Hallo{user.is_guest ? "" : ` ${user.name.split(" ")[0]}`},<br />
+          <span className="g">{next ? "alles im Griff." : "schön, dass du da bist."}</span>
+        </h1>
+      </div>
+
+      {user.is_guest ? (
+        <div className="card space-y-3">
+          <p className="font-semibold">Sichere deine Boxx</p>
+          <p className="muted text-sm">Mit deiner E-Mail findest du sie auf jedem Gerät wieder – kein Passwort, nur ein Link.</p>
+          <LoginLinkForm withName cta="Boxx sichern" />
+        </div>
+      ) : null}
 
       <InstallPrompt />
 
       {!next ? (
         <div className="card space-y-3">
           <IconBubble name="gift" />
-          <h2 className="text-xl">Deine erste Kiste</h2>
-          <p className="muted">Geburtstag, Weihnachten oder Einschulung: Leg eine Kiste an, füll sie mit Wünschen und schick den Link an die Gäste.</p>
-          <Link href="/lists/new" className="btn">Kiste anlegen</Link>
+          <h2 className="text-xl">Deine erste Boxx</h2>
+          <p className="muted">Geburtstag, Weihnachten oder Einschulung: Drei Fragen – die KI packt passende Ideen ein, du schickst den Link an die Gäste.</p>
+          <Link href="/start" className="btn">Boxx packen</Link>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           <Link href={`/lists/${next.id}`} className="card block space-y-3">
-            <p className="text-sm font-semibold muted">{upcoming[0] ? "Als Nächstes" : "Deine Kiste"}</p>
+            <p className="text-sm font-semibold muted">{upcoming[0] ? "Als Nächstes" : "Deine Boxx"}</p>
             <div className="flex items-center gap-3">
               <DateTile date={next.event_date} />
               <div className="min-w-0">
@@ -89,7 +101,7 @@ export default async function Dashboard() {
 
       {others.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-xl">Weitere Kisten</h2>
+          <h2 className="text-xl">Weitere Boxen</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {others.map((l) => (
               <Link key={l.id} href={`/lists/${l.id}`} className="card flex items-center gap-3">
@@ -127,7 +139,7 @@ export default async function Dashboard() {
                 <span>
                   <span className="block font-semibold">{r.name}</span>
                   <span className="block text-xs muted">
-                    {ageFromBirthdate(r.birthdate) != null ? `${ageFromBirthdate(r.birthdate)} Jahre` : "Alter offen"}
+                    {recipientAge(r) != null ? `${recipientAge(r)} Jahre` : "Alter offen"}
                   </span>
                 </span>
               </Link>

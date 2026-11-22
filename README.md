@@ -25,6 +25,16 @@ Kiste wählen → fertig. Ohne Netz zeigt die App eine Offline-Seite statt einer
 
 Gäste brauchen weiterhin **keine** App – sie öffnen einfach den geteilten Link.
 
+## In 60 Sekunden zur ersten Boxx
+
+1. **„Boxx packen“** – kein Konto nötig
+2. Drei Fragen: *Für wen?* · *Was wird gefeiert?* (mit Budget) · *Was mag das Kind?*
+3. Die KI packt sofort passende Ideen ein – mit ✕ aussortieren, über „Teilen“ per WhatsApp verschicken
+   (mit Vorschaubild: Name, Anlass, Datum)
+4. Boxx sichern per **E-Mail-Link** – ohne Passwort
+
+Neue Wünsche kommen über **ein einziges Feld**: Link einfügen, Stichwort tippen („Lego Pferd“) oder Foto machen.
+
 ## Features
 
 **Für Eltern**
@@ -61,7 +71,9 @@ cp .env.example .env.local   # optional ANTHROPIC_API_KEY und ADMIN_EMAIL setzen
 npm run dev                  # http://localhost:3000
 ```
 
-- Der **erste registrierte Nutzer** wird Admin (oder der mit `ADMIN_EMAIL`).
+- Der **erste Nutzer, der sich per E-Mail-Link anmeldet,** wird Admin (oder der mit `ADMIN_EMAIL`).
+- Anmeldung läuft per E-Mail-Link. Ohne SMTP zeigt die App den Link im Entwicklungsmodus (`npm run dev`)
+  direkt an; zum Testen eines Produktions-Builds ohne Mailversand `SHOW_LOGIN_LINKS=1` setzen (nie live!).
 - Unter **/admin** die Partner-ID beim Amazon-Partner eintragen und „aktiv“ setzen.
 - Ohne `ANTHROPIC_API_KEY` liefert ein eingebauter Katalog regelbasierte Vorschläge.
 

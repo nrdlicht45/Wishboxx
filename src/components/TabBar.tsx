@@ -7,8 +7,8 @@ import { usePathname } from "next/navigation";
 export function TabBar({ isAdmin, logoutAction }: { isAdmin: boolean; logoutAction: () => Promise<void> }) {
   const path = usePathname();
   const tabs = [
-    { href: "/dashboard", icon: "home", label: "Übersicht", active: path === "/dashboard" || (path.startsWith("/lists/") && path !== "/lists/new") },
-    { href: "/lists/new", icon: "plus", label: "Neue Kiste", active: path === "/lists/new" },
+    { href: "/dashboard", icon: "home", label: "Meine Boxx", active: path === "/dashboard" || (path.startsWith("/lists/") && path !== "/lists/new") },
+    { href: "/start", icon: "plus", label: "Neue Boxx", active: path === "/start" || path === "/lists/new" },
     { href: "/recipients/new", icon: "users", label: "Familie", active: path.startsWith("/recipients") },
     ...(isAdmin ? [{ href: "/admin", icon: "settings", label: "Admin", active: path.startsWith("/admin") }] : []),
   ];

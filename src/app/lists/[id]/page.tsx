@@ -15,9 +15,10 @@ import { appUrl, dateDe, euro } from "@/lib/format";
 import { ShareBox } from "@/components/ShareBox";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PhotoWish } from "@/components/PhotoWish";
+import { LoginLinkForm } from "@/components/LoginLinkForm";
 import {
-  addItem,
   archiveList,
+  smartAdd,
   copyOpenItems,
   deleteItem,
   markReceivedAsOwned,
@@ -28,7 +29,14 @@ import {
 
 const PRIO: Record<number, string> = { 1: "Herzenswunsch", 2: "Normal", 3: "Wäre nett" };
 
-export default async function ListPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ListPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ neu?: string }>;
+}) {
+  const { neu } = await searchParams;
   const user = await requireUser();
   const list = getList(Number((await params).id), user.id);
   if (!list) notFound();
@@ -43,7 +51,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
     list.budget_min || list.budget_max
       ? ` Budget pro Geschenk: ${list.budget_min ? euro(list.budget_min) : ""}${list.budget_max ? " – " + euro(list.budget_max) : ""}.`
       : "";
-  const shareText = `🎁 ${list.title}${list.event_date ? ` am ${dateDe(list.event_date)}` : ""}! Hier ist die Wunschkiste – einfach ein Geschenk aussuchen und reservieren, ganz ohne Anmeldung.${budget}`;
+  const shareText = `🎁 ${list.title}${list.event_date ? ` am ${dateDe(list.event_date)}` : ""}! Hier ist die Wunsch-Boxx – einfach ein Geschenk aussuchen und reservieren, ganz ohne Anmeldung.${budget}`;
   const allReservations = items.flatMap((i) => i.reservations.map((r) => ({ ...r, itemTitle: i.title })));
 
   return (
@@ -59,7 +67,9 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/lists/${list.id}/ideas`} className="btn"><Icon name="sparkle" /> KI-Ideen</Link>
+          <a className="btn" href={`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`} target="_blank" rel="noopener">
+            <Icon name="share" /> Teilen
+          </a>
           <Link href={`/lists/${list.id}/edit`} className="btn-ghost">Bearbeiten</Link>
           <form action={archiveList}>
             <input type="hidden" name="id" value={list.id} />
@@ -69,65 +79,12 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
         </div>
       </div>
 
-      <section className="card space-y-3">
-        <h2 className="font-bold">Mit Gästen teilen</h2>
-        <ShareBox url={shareUrl} text={shareText} />
-        <form action={regenerateShareLink} className="text-xs">
-          <input type="hidden" name="id" value={list.id} />
-          <button className="muted underline" type="submit">Link zurücksetzen (alter Link wird ungültig)</button>
-        </form>
-        {!showStatus && (
-          <p className="chip"><Icon name="eyeoff" size={14} /> Überraschungsmodus aktiv – Reservierungen siehst du erst nach dem Fest.</p>
-        )}
-      </section>
-
-      <section className="card space-y-3">
-        <h2 className="flex items-center gap-3 text-lg"><IconBubble name="camera" /> Wunsch per Foto</h2>
-        <PhotoWish listId={list.id} />
-      </section>
-
-      <section className="card space-y-3">
-        <h2 className="flex items-center gap-3 text-lg"><IconBubble name="link" /> Wunsch per Link oder von Hand</h2>
-        <form action={addItem} className="grid gap-3 sm:grid-cols-6">
-          <input type="hidden" name="list_id" value={list.id} />
-          <div className="sm:col-span-6">
-            <label className="label" htmlFor="url">Produktlink (Titel, Bild & Preis werden automatisch geladen)</label>
-            <input className="input" id="url" name="url" type="url" placeholder="https://www.amazon.de/…" />
-          </div>
-          <div className="sm:col-span-3">
-            <label className="label" htmlFor="title">Titel (optional bei Link)</label>
-            <input className="input" id="title" name="title" placeholder="z.B. LEGO Pferdestall" />
-          </div>
-          <div>
-            <label className="label" htmlFor="price">Preis €</label>
-            <input className="input" id="price" name="price" inputMode="decimal" />
-          </div>
-          <div>
-            <label className="label" htmlFor="quantity">Anzahl</label>
-            <input className="input" id="quantity" name="quantity" type="number" min={1} max={20} defaultValue={1} />
-          </div>
-          <div>
-            <label className="label" htmlFor="priority">Priorität</label>
-            <select className="input" id="priority" name="priority" defaultValue={2}>
-              {Object.entries(PRIO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-          </div>
-          <div className="sm:col-span-6 flex flex-wrap items-center gap-4 text-sm">
-            <label className="flex items-center gap-2">
-              <input type="radio" name="source" value="link" defaultChecked /> Online-Shop
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" name="source" value="store" /> Liegt im Laden {list.shop_name && `(${list.shop_name})`}
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="is_group_gift" /> Gruppengeschenk (mehrere legen zusammen)
-            </label>
-          </div>
-          <div className="sm:col-span-6">
-            <SubmitButton pendingText="Lade Produktdaten…">Hinzufügen</SubmitButton>
-          </div>
-        </form>
-      </section>
+      {neu && (
+        <div className="banner space-y-1">
+          <p className="display text-xl">{items.length} Ideen sind schon eingepackt.</p>
+          <p className="text-sm opacity-95">Tippe bei allem, was nicht passt, auf das ✕ – und teile die Boxx dann oben über „Teilen“.</p>
+        </div>
+      )}
 
       <section className="space-y-3">
         <h2 className="text-xl">Wünsche ({items.length})</h2>
@@ -139,7 +96,15 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
         {items.map((it) => {
           const taken = isItemTaken(it);
           return (
-            <article key={it.id} className="card flex gap-4">
+            <article key={it.id} className="card relative flex gap-4">
+              <form action={deleteItem} className="absolute right-3 top-3">
+                <input type="hidden" name="id" value={it.id} />
+                <input type="hidden" name="list_id" value={list.id} />
+                <button type="submit" aria-label={`„${it.title}“ entfernen`}
+                  className="flex h-11 w-11 items-center justify-center rounded-full muted hover:bg-[var(--bubble)]">
+                  <span aria-hidden className="text-lg leading-none">✕</span>
+                </button>
+              </form>
               {it.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={it.image_url} alt="" className="h-20 w-20 shrink-0 rounded-xl object-contain bg-white" />
@@ -148,7 +113,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
                   <Icon name={it.source === "store" ? "store" : it.source === "photo" ? "camera" : "gift"} size={30} />
                 </span>
               )}
-              <div className="min-w-0 flex-1 space-y-1">
+              <div className="min-w-0 flex-1 space-y-1 pr-10">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="font-bold">{it.title}</h3>
                   {it.priority === 1 && <span className="chip chip-pink"><Icon name="heart" size={13} /> Herzenswunsch</span>}
@@ -218,6 +183,68 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
           );
         })}
       </section>
+
+      <section className="card space-y-3" aria-label="Wunsch hinzufügen">
+        <h2 className="text-lg">Wunsch hinzufügen</h2>
+        <form action={smartAdd} className="space-y-3">
+          <input type="hidden" name="list_id" value={list.id} />
+          <div className="flex gap-2">
+            <label htmlFor="q" className="sr-only">Link oder Stichwort</label>
+            <input className="input flex-1" id="q" name="q" required autoComplete="off" enterKeyHint="send"
+              placeholder="Link einfügen oder Stichwort, z.B. „Lego Pferd“" />
+            <SubmitButton pendingText="…" className="btn shrink-0 !px-4"><Icon name="plus" /><span className="sr-only">Hinzufügen</span></SubmitButton>
+          </div>
+          <details className="text-sm">
+            <summary className="muted cursor-pointer">Mehr Optionen (Preis, Laden, Gruppengeschenk …)</summary>
+            <div className="mt-3 grid gap-3 sm:grid-cols-4">
+              <div>
+                <label className="label" htmlFor="price">Preis €</label>
+                <input className="input" id="price" name="price" inputMode="decimal" />
+              </div>
+              <div>
+                <label className="label" htmlFor="quantity">Anzahl</label>
+                <input className="input" id="quantity" name="quantity" type="number" min={1} max={20} defaultValue={1} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label" htmlFor="priority">Priorität</label>
+                <select className="input" id="priority" name="priority" defaultValue={2}>
+                  {Object.entries(PRIO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <label className="flex items-center gap-2 sm:col-span-2">
+                <input type="checkbox" name="source" value="store" /> Liegt im Laden {list.shop_name && `(${list.shop_name})`}
+              </label>
+              <label className="flex items-center gap-2 sm:col-span-2">
+                <input type="checkbox" name="is_group_gift" /> Gruppengeschenk (mehrere legen zusammen)
+              </label>
+            </div>
+          </details>
+        </form>
+        <div className="flex flex-wrap items-start gap-2">
+          <PhotoWish listId={list.id} compact />
+          <Link href={`/lists/${list.id}/ideas`} className="btn-ghost"><Icon name="sparkle" /> Mehr Ideen</Link>
+        </div>
+      </section>
+
+      <section className="card space-y-3">
+        <h2 className="font-bold">Mit Gästen teilen</h2>
+        <ShareBox url={shareUrl} text={shareText} />
+        <form action={regenerateShareLink} className="text-xs">
+          <input type="hidden" name="id" value={list.id} />
+          <button className="muted underline" type="submit">Link zurücksetzen (alter Link wird ungültig)</button>
+        </form>
+        {!showStatus && (
+          <p className="chip"><Icon name="eyeoff" size={14} /> Überraschungsmodus aktiv – Reservierungen siehst du erst nach dem Fest.</p>
+        )}
+      </section>
+
+      {user.is_guest ? (
+        <section className="card space-y-3">
+          <h2 className="flex items-center gap-3 text-lg"><IconBubble name="heart" /> Boxx sichern</h2>
+          <p className="muted text-sm">Damit du sie auf jedem Gerät wiederfindest und erfährst, wenn Gäste etwas reservieren. Kein Passwort – nur ein Link per E-Mail.</p>
+          <LoginLinkForm withName next={`/lists/${list.id}`} cta="Boxx sichern" />
+        </section>
+      ) : null}
 
       {over && (
         <section className="card space-y-3">

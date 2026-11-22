@@ -23,16 +23,16 @@ export default async function SharePage({
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
-      <h1 className="text-3xl">In die <span className="g">Kiste legen</span></h1>
+      <h1 className="text-3xl">In die <span className="g">Boxx legen</span></h1>
       {lists.length === 0 ? (
         <div className="card space-y-3">
-          <p>Du hast noch keine Kiste. Leg zuerst eine an – dann kannst du Wünsche direkt aus anderen Apps teilen.</p>
-          <Link className="btn" href="/lists/new">Neue Kiste anlegen</Link>
+          <p>Du hast noch keine Boxx. Pack zuerst eine – dann kannst du Wünsche direkt aus anderen Apps teilen.</p>
+          <Link className="btn" href="/start">Boxx packen</Link>
         </div>
       ) : (
         <form action={addSharedItem} className="card space-y-4">
           <div>
-            <label className="label" htmlFor="list_id">In welche Kiste?</label>
+            <label className="label" htmlFor="list_id">In welche Boxx?</label>
             <select className="input" id="list_id" name="list_id" defaultValue={lists[0].id}>
               {lists.map((l) => (
                 <option key={l.id} value={l.id}>
@@ -65,7 +65,7 @@ export default async function SharePage({
             </div>
           </div>
           <input type="hidden" name="source" value="link" />
-          <SubmitButton pendingText="Lade Produktdaten…">Zur Kiste hinzufügen</SubmitButton>
+          <SubmitButton pendingText="Lade Produktdaten…">In die Boxx legen</SubmitButton>
         </form>
       )}
     </div>

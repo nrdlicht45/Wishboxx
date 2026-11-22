@@ -7,6 +7,7 @@ import { PwaRegister } from "@/components/PwaRegister";
 import { TabBar } from "@/components/TabBar";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.APP_URL || "http://localhost:3000"),
   title: "Wishboxx – die digitale Geburtstagskiste",
   description:
     "Wunschlisten für Kinder & Familien: KI-Geschenkideen, Reservieren ohne Account, Gruppengeschenke und Danke-Liste.",
@@ -55,7 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <div className={`items-center gap-2 text-sm ${user ? "hidden sm:flex" : "flex"}`}>
               {user ? (
                 <>
-                  <Link href="/dashboard" className="btn-ghost">Übersicht</Link>
+                  <Link href="/dashboard" className="btn-ghost">Meine Boxx</Link>
                   {user.is_admin ? <Link href="/admin" className="btn-ghost">Admin</Link> : null}
                   <form action={logout}>
                     <button className="btn-ghost" type="submit">Abmelden</button>
@@ -64,7 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               ) : (
                 <>
                   <Link href="/login" className="btn-ghost hidden sm:inline-flex">Anmelden</Link>
-                  <Link href="/register" className="btn whitespace-nowrap">Starten</Link>
+                  <Link href="/start" className="btn whitespace-nowrap">Boxx packen</Link>
                 </>
               )}
             </div>

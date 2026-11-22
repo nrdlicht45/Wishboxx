@@ -10,7 +10,7 @@ export default async function EditList({ params }: { params: Promise<{ id: strin
   if (!list) notFound();
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl">Kiste bearbeiten</h1>
+      <h1 className="text-2xl">Boxx bearbeiten</h1>
       <ListForm list={list} recipients={getRecipients(user.id)} action={updateList} />
       <form action={deleteList}>
         <input type="hidden" name="id" value={list.id} />

@@ -45,7 +45,7 @@ export function ListForm({
       <div>
         <label className="label" htmlFor="description">Nachricht an die Gäste</label>
         <textarea className="input" id="description" name="description" rows={3}
-          placeholder="Wir feiern am Samstag ab 15 Uhr im Garten. Emma freut sich über eine Kleinigkeit aus ihrer Kiste!"
+          placeholder="Wir feiern am Samstag ab 15 Uhr im Garten. Emma freut sich über eine Kleinigkeit aus ihrer Boxx!"
           defaultValue={list?.description} />
       </div>
       <fieldset className="grid gap-4 sm:grid-cols-2">
@@ -65,7 +65,7 @@ export function ListForm({
         <p className="muted mt-1 text-xs">Nach dem Fest-Datum wird alles für die Danke-Liste sichtbar.</p>
       </div>
       <details className="rounded-xl border p-3" style={{ borderColor: "var(--line)" }}>
-        <summary className="cursor-pointer font-bold">Kiste liegt (auch) im Laden? / Gruppengeschenke</summary>
+        <summary className="cursor-pointer font-bold">Boxx liegt (auch) im Laden? / Gruppengeschenke</summary>
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <div>
             <label className="label" htmlFor="shop_name">Geschäft</label>
@@ -85,7 +85,7 @@ export function ListForm({
           </div>
         </div>
       </details>
-      <SubmitButton>{list ? "Speichern" : "Kiste anlegen"}</SubmitButton>
+      <SubmitButton>{list ? "Speichern" : "Boxx anlegen"}</SubmitButton>
     </form>
   );
 }

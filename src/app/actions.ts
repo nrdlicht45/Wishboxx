@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import {
+  createLoginToken,
+  getCurrentUser,
+  getOrCreateGuest,
+  redeemLoginToken,
   createSession,
   destroySession,
   hashPassword,
@@ -26,8 +30,9 @@ import {
   REVEAL_MODES,
   GENDERS,
   getActiveProviders,
+  recipientAge,
 } from "@/lib/repo";
-import { sendMail } from "@/lib/mailer";
+import { mailConfigured, sendMail } from "@/lib/mailer";
 import { recognizeProduct, type RecognizedProduct } from "@/lib/vision";
 import { MAX_UPLOAD_BYTES, saveUpload, sniffImage, UPLOAD_PATH_RE } from "@/lib/uploads";
 import { appUrl, dateDe } from "@/lib/format";
@@ -262,7 +267,7 @@ export async function addItem(fd: FormData) {
   let image = str(fd, "image_url", 2000) || null;
   let description = str(fd, "description", 1000);
 
-  if (url && source === "link" && (!title || price == null || !image)) {
+  if (url && source === "link" && !fd.get("skip_meta") && (!title || price == null || !image)) {
     const meta = await fetchProductMeta(url);
     title ||= meta.title ?? "";
     price ??= meta.price ?? null;
@@ -355,7 +360,7 @@ export async function generateIdeas(_: unknown, fd: FormData): Promise<IdeasStat
   const rec = list.recipient_id ? getRecipient(list.recipient_id, user.id) : undefined;
 
   // Formular-Werte erlauben ad-hoc-Eingrenzung, ohne das Profil zu ändern.
-  const age = num(fd, "age") ?? ageFromBirthdate(rec?.birthdate ?? null);
+  const age = num(fd, "age") ?? recipientAge(rec);
   const result = await suggestGifts({
     age: age != null ? Math.round(age) : null,
     gender: pick(str(fd, "gender") || rec?.gender || "none", GENDERS, "none"),
@@ -504,4 +509,141 @@ export async function deleteProvider(fd: FormData) {
   await requireAdmin();
   getDb().prepare("DELETE FROM affiliate_providers WHERE id = ?").run(Number(fd.get("id")));
   revalidatePath("/admin");
+}
+
+// ---------------- Login per E-Mail-Link ----------------
+export type LinkState = { sent?: boolean; email?: string; devLink?: string; error?: string };
+
+/** Schickt einen Einmal-Login-Link. Ist der Nutzer gerade Gast, wird seine Boxx beim Einlösen übernommen. */
+export async function requestLoginLink(_: unknown, fd: FormData): Promise<LinkState> {
+  const email = str(fd, "email", 200).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Bitte eine gültige E-Mail-Adresse eingeben." };
+  const current = await getCurrentUser();
+  const token = createLoginToken({
+    email,
+    name: str(fd, "name", 80),
+    guestUserId: current?.is_guest ? current.id : null,
+    next: safeNext(fd),
+  });
+  const link = `${appUrl()}/auth/verify?token=${token}`;
+  if (!mailConfigured() && (process.env.NODE_ENV !== "production" || process.env.SHOW_LOGIN_LINKS === "1")) {
+    return { sent: true, email, devLink: link }; // Entwicklung: Link direkt anzeigen
+  }
+  const ok = await sendMail(
+    email,
+    "Dein Anmelde-Link für Wishboxx",
+    `Hallo!\n\nTippe auf diesen Link, um dich bei Wishboxx anzumelden (15 Minuten gültig):\n${link}\n\n` +
+      `Du hast keinen Link angefordert? Dann ignoriere diese E-Mail einfach.\n\nDein Wishboxx-Team`,
+  );
+  if (!ok || !mailConfigured()) return { error: "Die E-Mail konnte gerade nicht verschickt werden. Bitte später erneut versuchen." };
+  return { sent: true, email };
+}
+
+export async function confirmLogin(fd: FormData) {
+  const next = await redeemLoginToken(str(fd, "token", 100));
+  redirect(next ?? "/login?abgelaufen=1");
+}
+
+// ---------------- Boxx in 60 Sekunden ----------------
+const BUDGETS: Record<string, [number | null, number | null]> = {
+  "10": [null, 10],
+  "15": [10, 15],
+  "25": [15, 25],
+  "": [null, null],
+};
+
+const genitive = (name: string) => (/[sßxz]$/i.test(name) ? `${name}'` : `${name}s`);
+
+function defaultTitle(name: string, occasion: string, age: number | null): string {
+  const n = genitive(name);
+  switch (occasion) {
+    case "birthday": return age != null ? `${n} ${age}. Geburtstag` : `${n} Geburtstag`;
+    case "christmas": return `${n} Weihnachtswünsche`;
+    case "easter": return `${n} Osterwünsche`;
+    case "school": return `${n} Einschulung`;
+    case "communion": return `${n} großer Tag`;
+    case "baby": return `Willkommen, ${name}!`;
+    default: return `${n} Wünsche`;
+  }
+}
+
+/** Drei Fragen → Gast-Konto, Kinderprofil, Boxx, KI füllt sie direkt mit Ideen. */
+export async function quickStart(_: unknown, fd: FormData): Promise<{ error?: string }> {
+  const name = str(fd, "name", 60);
+  if (!name) return { error: "Wie heißt das Kind?" };
+  const age = num(fd, "age");
+  const occasion = pick(str(fd, "occasion"), OCCASIONS, "birthday");
+  const eventDate = str(fd, "event_date", 10) || null;
+  const interests = str(fd, "interests", 500);
+  const avoid = str(fd, "avoid", 300);
+  const [budgetMin, budgetMax] = BUDGETS[str(fd, "budget")] ?? [null, null];
+  const user = await getOrCreateGuest(str(fd, "parent", 60));
+  const db = getDb();
+
+  // Bei Geburtstag mit Datum lässt sich der Geburtstag genau ableiten: Feier-Datum minus Alter
+  let birthdate: string | null = null;
+  if (occasion === "birthday" && eventDate && age != null) {
+    birthdate = `${Number(eventDate.slice(0, 4)) - Math.round(age)}${eventDate.slice(4)}`;
+  }
+  const rec = db
+    .prepare(
+      `INSERT INTO recipients (user_id, name, birthdate, gender, interests, avoid, age_hint) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(user.id, name, birthdate, pick(str(fd, "gender"), GENDERS, "none"), interests, avoid,
+      age != null && !birthdate ? Math.round(age) : null);
+  const turning = occasion === "birthday" && age != null ? Math.round(age) : null;
+  const list = db
+    .prepare(
+      `INSERT INTO lists (user_id, recipient_id, title, occasion, event_date, share_token, budget_min, budget_max)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(user.id, rec.lastInsertRowid, defaultTitle(name, occasion, turning), occasion, eventDate, randomToken(9), budgetMin, budgetMax);
+  const listId = Number(list.lastInsertRowid);
+
+  const ideas = await suggestGifts({
+    age: age != null ? Math.round(age) : null,
+    gender: pick(str(fd, "gender"), GENDERS, "none"),
+    interests: csv(interests),
+    avoid: csv(avoid),
+    owned: [],
+    sizes: "",
+    occasion,
+    budgetMin,
+    budgetMax,
+    existingItems: [],
+  });
+  const providers = getActiveProviders();
+  const ins = db.prepare(
+    `INSERT INTO items (list_id, title, description, url, price, source, sort) VALUES (?, ?, ?, ?, ?, 'ai', ?)`,
+  );
+  ideas.ideas.forEach((i, n) =>
+    ins.run(listId, i.title, `${i.description} – ${i.reason}`, buildSearchUrl(i.search_query, providers), i.price_estimate || null, n),
+  );
+  redirect(`/lists/${listId}?neu=1`);
+}
+
+// ---------------- Ein Eingabefeld: Link oder Stichwort ----------------
+export async function smartAdd(fd: FormData) {
+  const user = await requireUser();
+  const listId = Number(fd.get("list_id"));
+  if (!getList(listId, user.id)) return;
+  const q = str(fd, "q", 2000);
+  if (!q) return;
+  const urlInText = q.match(/https?:\/\/\S+/)?.[0];
+  const out = new FormData();
+  for (const [k, v] of fd.entries()) if (k !== "q") out.set(k, v);
+  if (urlInText) {
+    out.set("url", urlInText);
+    const rest = q.replace(urlInText, "").trim();
+    if (rest && !str(fd, "title")) out.set("title", rest.slice(0, 160));
+  } else {
+    // Stichwort → Wunsch mit Such-Link beim bevorzugten Shop (Affiliate)
+    if (!str(fd, "title")) out.set("title", q.slice(0, 160));
+    const search = buildSearchUrl(q, getActiveProviders());
+    if (search && str(fd, "source") !== "store") {
+      out.set("url", search);
+      out.set("skip_meta", "1"); // Suchseite liefert keine Produktdaten
+    }
+  }
+  await addItem(out);
 }
