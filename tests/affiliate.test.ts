@@ -126,3 +126,28 @@ test("Fortsetzung merken schlägt den nächsten Band vor", () => {
   assert.equal(nextVolume("Tonie Teil 1"), "Tonie Teil 2");
   assert.equal(nextVolume("Dino-Set"), "Dino-Set – Fortsetzung");
 });
+
+import { detectProviderFromExample } from "../src/lib/affiliate.ts";
+test("Partner aus Beispiel-Link: AWIN-Deeplink wird zur Vorlage", () => {
+  const d = detectProviderFromExample(
+    "https://www.awin1.com/cread.php?awinmid=12345&awinaffid=67890&ued=https%3A%2F%2Fwww.jako-o.de%2Fp%2F123",
+  )!;
+  assert.equal(d.mode, "template");
+  assert.equal(d.domains, "jako-o.de");
+  assert.equal(d.network, "AWIN");
+  assert.equal(d.link_template, "https://www.awin1.com/cread.php?awinmid=12345&awinaffid=67890&ued={url}");
+  // und die Vorlage funktioniert in der Engine
+  const r = applyAffiliate("https://www.jako-o.de/p/999", [{ ...base, id: 9, name: d.name, domains: d.domains, mode: d.mode, link_template: d.link_template }]);
+  assert.ok(r.url.endsWith(encodeURIComponent("https://www.jako-o.de/p/999")));
+});
+test("Partner aus Beispiel-Link: Amazon-Tag wird zum Parameter", () => {
+  const d = detectProviderFromExample("https://www.amazon.de/dp/B0ABC?tag=meinname-21&linkCode=ll1")!;
+  assert.equal(d.mode, "param");
+  assert.equal(d.param_name, "tag");
+  assert.equal(d.param_value, "meinname-21");
+  assert.match(d.domains, /amzn\.to/);
+});
+test("Unbekanntes Format liefert null", () => {
+  assert.equal(detectProviderFromExample("https://www.example.com/produkt/1"), null);
+  assert.equal(detectProviderFromExample("kein link"), null);
+});

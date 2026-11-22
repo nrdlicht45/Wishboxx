@@ -17,7 +17,8 @@ import {
   requireUser,
   verifyPassword,
 } from "@/lib/auth";
-import { buildSearchUrl, isSafeHttpUrl } from "@/lib/affiliate";
+import { buildSearchUrl, detectProviderFromExample, isSafeHttpUrl } from "@/lib/affiliate";
+import { draftProviderWithAi } from "@/lib/providerAi";
 import { fetchProductMeta } from "@/lib/metadata";
 import {
   ageFromBirthdate,
@@ -796,4 +797,46 @@ export async function releaseReservation(fd: FormData) {
     .run(Number(fd.get("reservation_id")), listId);
   revalidatePath(`/lists/${listId}`);
   revalidatePath(`/k/${list.share_token}`);
+}
+
+// ---------------- Admin: Partner aus Beispiel-Link ----------------
+export type ProviderSuggestion = {
+  draft?: {
+    name: string; domains: string; mode: string; param_name: string; param_value: string;
+    link_template: string; search_url_template: string; active: number; use_for_suggestions: number; priority: number;
+  };
+  source?: "erkannt" | "ki";
+  note?: string;
+  error?: string;
+};
+
+/** Erkennt Partner-Einstellungen aus einem Beispiel-Affiliate-Link; unbekannte Formate wertet die KI aus. */
+export async function suggestProvider(_: unknown, fd: FormData): Promise<ProviderSuggestion> {
+  await requireAdmin();
+  const input = str(fd, "example", 4000);
+  const domainHint = str(fd, "domain", 200);
+  if (!input) return { error: "Bitte einen Beispiel-Link einfügen." };
+  const base = { active: 1, use_for_suggestions: 0, priority: 50 };
+  const link = input.match(/https?:\/\/\S+/)?.[0];
+  const found = link ? detectProviderFromExample(link) : null;
+  if (found) {
+    return {
+      source: "erkannt",
+      note: found.mode === "template"
+        ? `${found.network}-Deeplink erkannt. Die IDs stammen aus deinem Link – bitte kurz prüfen und speichern.`
+        : `Partner-ID „${found.param_value}“ im Parameter „${found.param_name}“ erkannt.`,
+      draft: { ...base, ...found, search_url_template: "" },
+    };
+  }
+  const ai = await draftProviderWithAi(input, domainHint);
+  if ("error" in ai) return { error: ai.error };
+  // Sicherheitsnetz: nur Werte übernehmen, die wirklich im eingefügten Text stehen
+  const inInput = (v: string) => !v || input.includes(v) || input.includes(encodeURIComponent(v));
+  if (!inInput(ai.param_value)) return { error: "Die KI hat eine ID vorgeschlagen, die nicht in deinem Link steht – bitte von Hand ausfüllen." };
+  return {
+    source: "ki",
+    note: ai.note || "Von der KI vorgeschlagen – bitte prüfen, vor allem den Such-Link.",
+    draft: { ...base, name: ai.name, domains: ai.domains, mode: ai.mode, param_name: ai.param_name, param_value: ai.param_value,
+      link_template: ai.link_template, search_url_template: ai.search_url_template },
+  };
 }

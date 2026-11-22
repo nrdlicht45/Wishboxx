@@ -65,7 +65,9 @@ Neue Wünsche kommen über **ein einziges Feld**: Link einfügen, Stichwort tipp
 - Affiliate-Partner verwalten (Domains, `?tag=`-Parameter oder Deeplink-Vorlage mit `{url}`, Priorität)
 - Automatisches Umschreiben aller Produktlinks beim Klick (`/go/:id`) inkl. Klick-Tracking
 - KI-Vorschläge verlinken auf die Suche des bevorzugten Partners (`{query}`-Vorlage)
-- Statistik, „Shops ohne Partner“, Link-Tester
+- **Neuen Shop per Beispiel-Link anlegen:** AWIN-, Tradedoubler-, Webgains-Deeplinks und Shop-Parameter
+  (z.B. Amazon `tag=`) werden automatisch erkannt; unbekannte Formate schlägt die KI vor (nur IDs, die im Link stehen)
+- Statistik, „Shops ohne Partner“ (mit „Partner anlegen“), Link-Tester
 
 ## Tech-Stack
 

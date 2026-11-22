@@ -1,67 +1,14 @@
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { applyAffiliate, isSafeHttpUrl, type AffiliateProvider } from "@/lib/affiliate";
+import { applyAffiliate, isSafeHttpUrl } from "@/lib/affiliate";
 import { getActiveProviders, getProviders } from "@/lib/repo";
-import { SubmitButton } from "@/components/SubmitButton";
-import { deleteProvider, saveProvider } from "@/app/actions";
+import { deleteProvider } from "@/app/actions";
+import { ProviderForm } from "@/components/ProviderForm";
+import { ProviderWizard } from "@/components/ProviderWizard";
 
-function ProviderForm({ p }: { p?: AffiliateProvider }) {
-  return (
-    <form action={saveProvider} className="grid gap-3 sm:grid-cols-6">
-      {p && <input type="hidden" name="id" value={p.id} />}
-      <div className="sm:col-span-2">
-        <label className="label">Name</label>
-        <input className="input" name="name" required defaultValue={p?.name} placeholder="Amazon.de" />
-      </div>
-      <div className="sm:col-span-3">
-        <label className="label">Domains (Komma-getrennt)</label>
-        <input className="input" name="domains" required defaultValue={p?.domains} placeholder="amazon.de, amzn.to" />
-      </div>
-      <div>
-        <label className="label">Priorität</label>
-        <input className="input" name="priority" type="number" defaultValue={p?.priority ?? 100} />
-      </div>
-      <div className="sm:col-span-2">
-        <label className="label">Modus</label>
-        <select className="input" name="mode" defaultValue={p?.mode ?? "param"}>
-          <option value="param">Parameter anhängen (z.B. Amazon ?tag=)</option>
-          <option value="template">Deeplink-Vorlage (AWIN, Tradedoubler, …)</option>
-        </select>
-      </div>
-      <div>
-        <label className="label">Param-Name</label>
-        <input className="input" name="param_name" defaultValue={p?.param_name} placeholder="tag" />
-      </div>
-      <div className="sm:col-span-3">
-        <label className="label">Param-Wert / Partner-ID</label>
-        <input className="input" name="param_value" defaultValue={p?.param_value} placeholder="wishboxx-21" />
-      </div>
-      <div className="sm:col-span-6">
-        <label className="label">Deeplink-Vorlage – {"{url}"} wird durch den kodierten Produktlink ersetzt</label>
-        <input className="input" name="link_template" defaultValue={p?.link_template}
-          placeholder="https://www.awin1.com/cread.php?awinmid=123&awinaffid=456&ued={url}" />
-      </div>
-      <div className="sm:col-span-6">
-        <label className="label">Such-URL für KI-Vorschläge – {"{query}"} = Suchbegriff</label>
-        <input className="input" name="search_url_template" defaultValue={p?.search_url_template}
-          placeholder="https://www.amazon.de/s?k={query}" />
-      </div>
-      <div className="sm:col-span-6 flex flex-wrap items-center gap-4 text-sm">
-        <label className="flex items-center gap-2">
-          <input type="checkbox" name="active" defaultChecked={!!p?.active} /> aktiv
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" name="use_for_suggestions" defaultChecked={!!p?.use_for_suggestions} /> für KI-Vorschläge verwenden
-        </label>
-        <SubmitButton className="btn">{p ? "Speichern" : "Partner anlegen"}</SubmitButton>
-      </div>
-    </form>
-  );
-}
-
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ test?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ test?: string; neu?: string }> }) {
   await requireAdmin();
-  const { test } = await searchParams;
+  const { test, neu } = await searchParams;
   const db = getDb();
   const providers = getProviders();
   const stats = db
@@ -128,7 +75,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <p className="muted mb-2 text-xs">Diese Domains kommen in Wunschlisten vor, verdienen aber noch nichts.</p>
           {topUnmatched.length === 0 ? <p className="muted text-sm">Alles abgedeckt.</p> : (
             <ul className="space-y-1 text-sm">
-              {topUnmatched.map(([h, c]) => <li key={h} className="flex justify-between"><span>{h}</span><strong>{c}</strong></li>)}
+              {topUnmatched.map(([h, c]) => (
+                <li key={h} className="flex items-center justify-between gap-2">
+                  <span>{h} <strong className="muted">({c})</strong></span>
+                  <a className="underline" href={`/admin?neu=${encodeURIComponent(h)}#neuer-partner`}>Partner anlegen</a>
+                </li>
+              ))}
             </ul>
           )}
         </div>
@@ -169,9 +121,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </div>
           </details>
         ))}
-        <div className="card">
-          <h3 className="mb-3">Neuer Partner</h3>
-          <ProviderForm />
+        <div className="card" id="neuer-partner">
+          <h3 className="mb-1">Neuer Shop / Partner</h3>
+          <ProviderWizard initialDomain={neu ?? ""} />
         </div>
       </section>
     </div>
