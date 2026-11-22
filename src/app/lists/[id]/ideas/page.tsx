@@ -12,7 +12,7 @@ export default async function IdeasPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="space-y-4">
       <Link href={`/lists/${list.id}`} className="muted text-sm underline">← zurück zu „{list.title}“</Link>
-      <h1 className="text-3xl font-extrabold">✨ Geschenkideen</h1>
+      <h1 className="text-3xl leading-tight sm:text-4xl">Ideen, die <span className="g">{rec?.name ? `${rec.name} wirklich` : "wirklich"}</span> freuen.</h1>
       <p className="muted">
         Die KI berücksichtigt Alter, Interessen, No-Gos, „hat schon“ und was bereits auf der Liste steht. Tipp: Lass im
         Kindermodus dein Kind selbst wischen!

@@ -97,7 +97,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-extrabold">Admin</h1>
+      <h1 className="text-3xl">Admin</h1>
 
       <section className="grid gap-3 sm:grid-cols-5">
         {[
@@ -109,14 +109,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         ].map(([label, value]) => (
           <div key={label} className="card">
             <div className="muted text-xs font-bold">{label}</div>
-            <div className="text-2xl font-extrabold">{value}</div>
+            <div className="text-2xl">{value}</div>
           </div>
         ))}
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="card">
-          <h2 className="mb-2 font-extrabold">Klicks nach Partner (30 Tage)</h2>
+          <h2 className="mb-2">Klicks nach Partner (30 Tage)</h2>
           {clicks.length === 0 ? <p className="muted text-sm">Noch keine Klicks.</p> : (
             <ul className="space-y-1 text-sm">
               {clicks.map((c) => <li key={c.name} className="flex justify-between"><span>{c.name}</span><strong>{c.c}</strong></li>)}
@@ -124,9 +124,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           )}
         </div>
         <div className="card">
-          <h2 className="mb-2 font-extrabold">Shops ohne Affiliate-Partner</h2>
+          <h2 className="mb-2">Shops ohne Affiliate-Partner</h2>
           <p className="muted mb-2 text-xs">Diese Domains kommen in Wunschlisten vor, verdienen aber noch nichts.</p>
-          {topUnmatched.length === 0 ? <p className="muted text-sm">Alles abgedeckt 🎉</p> : (
+          {topUnmatched.length === 0 ? <p className="muted text-sm">Alles abgedeckt.</p> : (
             <ul className="space-y-1 text-sm">
               {topUnmatched.map(([h, c]) => <li key={h} className="flex justify-between"><span>{h}</span><strong>{c}</strong></li>)}
             </ul>
@@ -135,7 +135,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       </section>
 
       <section className="card space-y-3">
-        <h2 className="font-extrabold">Link-Tester</h2>
+        <h2 className="font-bold">Link-Tester</h2>
         <form className="flex gap-2">
           <input className="input" name="test" type="url" defaultValue={test} placeholder="https://www.amazon.de/dp/B0…" />
           <button className="btn" type="submit">Prüfen</button>
@@ -149,7 +149,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-extrabold">Affiliate-Partner</h2>
+        <h2 className="text-xl">Affiliate-Partner</h2>
         <p className="muted text-sm">
           Links werden beim Klick über <code>/go/…</code> automatisch mit der Partner-ID versehen – Änderungen gelten
           sofort für alle bestehenden Listen. Bei mehreren passenden Partnern gewinnt die niedrigste Priorität.
@@ -157,7 +157,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {providers.map((p) => (
           <details key={p.id} className="card">
             <summary className="flex cursor-pointer items-center justify-between gap-2">
-              <span className="font-extrabold">{p.name}</span>
+              <span className="font-bold">{p.name}</span>
               <span className={p.active ? "chip chip-ok" : "chip"}>{p.active ? "aktiv" : "inaktiv"}</span>
             </summary>
             <div className="mt-4 space-y-3">
@@ -170,7 +170,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </details>
         ))}
         <div className="card">
-          <h3 className="mb-3 font-extrabold">Neuer Partner</h3>
+          <h3 className="mb-3">Neuer Partner</h3>
           <ProviderForm />
         </div>
       </section>

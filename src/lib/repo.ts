@@ -194,3 +194,18 @@ export function getReservationByToken(token: string): ReservationContext | undef
     : undefined;
   return { reservation, item, list, recipientName: rec?.name ?? null };
 }
+
+/** Kennzahlen für die Familien-Zentrale (Startseite). */
+export function getListStats(listId: number) {
+  const items = getItemsWithStatus(listId);
+  const res = items.flatMap((i) => i.reservations);
+  const groups = items.filter((i) => i.is_group_gift && i.price);
+  return {
+    items: items.length,
+    taken: items.filter((i) => isItemTaken(i)).length,
+    reservations: res.length,
+    purchased: res.filter((r) => r.purchased).length,
+    reminded: res.filter((r) => r.reminder_stage > 0 && !r.purchased).length,
+    groups: groups.map((g) => ({ title: g.title, pct: Math.min(100, Math.round((g.pledged_sum / g.price!) * 100)) })),
+  };
+}

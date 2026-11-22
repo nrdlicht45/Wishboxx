@@ -9,7 +9,7 @@ export function AuthForm({ action, mode, next }: { action: Action; mode: "login"
   return (
     <form action={formAction} className="card mx-auto max-w-md space-y-4">
       {next && <input type="hidden" name="next" value={next} />}
-      <h1 className="text-2xl font-extrabold">{mode === "login" ? "Willkommen zurück" : "Konto erstellen"}</h1>
+      <h1 className="text-2xl">{mode === "login" ? "Willkommen zurück" : "Konto erstellen"}</h1>
       {mode === "register" && (
         <div>
           <label className="label" htmlFor="name">Dein Name</label>

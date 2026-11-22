@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./Icon";
 import { useActionState, useRef, useState, useTransition } from "react";
 import { addItem, recognizePhoto, type PhotoState } from "@/app/actions";
 import { SubmitButton } from "./SubmitButton";
@@ -51,7 +52,7 @@ export function PhotoWish({ listId }: { listId: number }) {
   return (
     <div className="space-y-3">
       <label className="btn cursor-pointer">
-        📷 Foto aufnehmen / auswählen
+        <Icon name="camera" /> Foto aufnehmen / auswählen
         <input ref={inputRef} type="file" accept="image/*" capture="environment" className="sr-only"
           onChange={(e) => onFile(e.target.files?.[0])} />
       </label>
@@ -64,7 +65,7 @@ export function PhotoWish({ listId }: { listId: number }) {
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {preview && <img src={preview} alt="" className="h-20 w-20 rounded-xl object-cover" />}
-          <p className="font-bold">🔍 Die KI schaut sich das Foto an…</p>
+          <p className="flex items-center gap-2 font-semibold"><Icon name="search" /> Die KI schaut sich das Foto an…</p>
         </div>
       )}
       {done && <p className="chip chip-ok">✓ Wunsch hinzugefügt</p>}
@@ -88,7 +89,7 @@ export function PhotoWish({ listId }: { listId: number }) {
             <div className="text-sm">
               {p ? (
                 <>
-                  <p className="chip chip-ok">✨ Erkannt{p.brand && `: ${p.brand}`}</p>
+                  <p className="chip chip-ok"><Icon name="sparkle" size={13} /> Erkannt{p.brand && `: ${p.brand}`}</p>
                   {p.age_hint && <p className="muted mt-1">Altersangabe: {p.age_hint}</p>}
                   <p className="muted mt-1">Bitte kurz prüfen und ggf. anpassen.</p>
                 </>

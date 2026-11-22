@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./Icon";
 import { useEffect, useState } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -48,10 +49,10 @@ export function InstallPrompt() {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/icons/icon-192.png" alt="" className="h-12 w-12 rounded-xl" />
       <div className="flex-1 text-sm">
-        <p className="font-extrabold">Wishboxx als App aufs Handy</p>
+        <p className="font-bold">Wishboxx als App aufs Handy</p>
         {ios ? (
           <p className="muted">
-            Tippe unten in Safari auf <strong>Teilen</strong> <span aria-hidden>⬆️</span> und dann auf{" "}
+            Tippe unten in Safari auf <strong>Teilen</strong> <Icon name="upload" size={15} className="inline align-[-2px]" /> und dann auf{" "}
             <strong>„Zum Home-Bildschirm“</strong>.
           </p>
         ) : (

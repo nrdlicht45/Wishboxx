@@ -1,7 +1,7 @@
 /* Wishboxx Service Worker – macht die App installierbar und offline-tolerant.
    Strategie: Seiten immer frisch vom Server (Listen ändern sich ständig),
    bei Funkloch eine Offline-Seite; statische Dateien aus dem Cache. */
-const VERSION = "wb-v1";
+const VERSION = "wb-v2";
 const STATIC = `${VERSION}-static`;
 const OFFLINE_URL = "/offline.html";
 

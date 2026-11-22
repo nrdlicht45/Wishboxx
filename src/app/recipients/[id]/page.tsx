@@ -10,7 +10,7 @@ export default async function EditRecipient({ params }: { params: Promise<{ id: 
   if (!r) notFound();
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold">Profil: {r.name}</h1>
+      <h1 className="text-2xl">Profil: {r.name}</h1>
       <RecipientForm r={r} />
       <form action={deleteRecipient}>
         <input type="hidden" name="id" value={r.id} />

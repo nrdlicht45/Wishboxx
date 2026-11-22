@@ -1,3 +1,4 @@
+import { Icon, IconBubble } from "@/components/Icon";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
@@ -49,7 +50,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-extrabold">{list.title}</h1>
+          <h1 className="text-3xl">{list.title}</h1>
           <p className="muted">
             {OCCASIONS[list.occasion]}
             {recipient && ` · für ${recipient.name}`}
@@ -58,7 +59,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/lists/${list.id}/ideas`} className="btn">✨ KI-Ideen</Link>
+          <Link href={`/lists/${list.id}/ideas`} className="btn"><Icon name="sparkle" /> KI-Ideen</Link>
           <Link href={`/lists/${list.id}/edit`} className="btn-ghost">Bearbeiten</Link>
           <form action={archiveList}>
             <input type="hidden" name="id" value={list.id} />
@@ -69,24 +70,24 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
       </div>
 
       <section className="card space-y-3">
-        <h2 className="font-extrabold">Mit Gästen teilen</h2>
+        <h2 className="font-bold">Mit Gästen teilen</h2>
         <ShareBox url={shareUrl} text={shareText} />
         <form action={regenerateShareLink} className="text-xs">
           <input type="hidden" name="id" value={list.id} />
           <button className="muted underline" type="submit">Link zurücksetzen (alter Link wird ungültig)</button>
         </form>
         {!showStatus && (
-          <p className="chip">🙈 Überraschungsmodus aktiv – Reservierungen siehst du erst nach dem Fest.</p>
+          <p className="chip"><Icon name="eyeoff" size={14} /> Überraschungsmodus aktiv – Reservierungen siehst du erst nach dem Fest.</p>
         )}
       </section>
 
       <section className="card space-y-3">
-        <h2 className="font-extrabold">📷 Wunsch per Foto</h2>
+        <h2 className="flex items-center gap-3 text-lg"><IconBubble name="camera" /> Wunsch per Foto</h2>
         <PhotoWish listId={list.id} />
       </section>
 
       <section className="card space-y-3">
-        <h2 className="font-extrabold">Wunsch per Link oder von Hand</h2>
+        <h2 className="flex items-center gap-3 text-lg"><IconBubble name="link" /> Wunsch per Link oder von Hand</h2>
         <form action={addItem} className="grid gap-3 sm:grid-cols-6">
           <input type="hidden" name="list_id" value={list.id} />
           <div className="sm:col-span-6">
@@ -129,7 +130,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-extrabold">Wünsche ({items.length})</h2>
+        <h2 className="text-xl">Wünsche ({items.length})</h2>
         {items.length === 0 && (
           <div className="card muted text-sm">
             Noch leer. Füge einen Link ein oder hol dir <Link className="underline" href={`/lists/${list.id}/ideas`}>KI-Ideen</Link>.
@@ -143,19 +144,18 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={it.image_url} alt="" className="h-20 w-20 shrink-0 rounded-xl object-contain bg-white" />
               ) : (
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl text-3xl"
-                  style={{ background: "var(--color-brand-50)" }} aria-hidden>
-                  {it.source === "store" ? "🏪" : "🎁"}
-                </div>
+                <span className="thumb" style={{ width: 80, height: 80 }}>
+                  <Icon name={it.source === "store" ? "store" : it.source === "photo" ? "camera" : "gift"} size={30} />
+                </span>
               )}
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-extrabold">{it.title}</h3>
-                  {it.priority === 1 && <span className="chip">❤️ Herzenswunsch</span>}
-                  {it.is_group_gift ? <span className="chip">🤝 Gruppengeschenk</span> : null}
-                  {it.source === "store" && <span className="chip">🏪 im Laden</span>}
-                  {it.source === "ai" && <span className="chip">✨ KI-Idee</span>}
-                  {it.source === "photo" && <span className="chip">📷 per Foto</span>}
+                  <h3 className="font-bold">{it.title}</h3>
+                  {it.priority === 1 && <span className="chip chip-pink"><Icon name="heart" size={13} /> Herzenswunsch</span>}
+                  {it.is_group_gift ? <span className="chip"><Icon name="users" size={13} /> Gemeinsam</span> : null}
+                  {it.source === "store" && <span className="chip"><Icon name="store" size={13} /> im Laden</span>}
+                  {it.source === "ai" && <span className="chip"><Icon name="sparkle" size={13} /> KI-Idee</span>}
+                  {it.source === "photo" && <span className="chip"><Icon name="camera" size={13} /> per Foto</span>}
                 </div>
                 <div className="muted text-sm">
                   {euro(it.price)} {it.quantity > 1 && `· ${it.quantity}× gewünscht`}
@@ -221,7 +221,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
 
       {over && (
         <section className="card space-y-3">
-          <h2 className="text-xl font-extrabold">💌 Danke-Liste</h2>
+          <h2 className="flex items-center gap-3 text-xl"><IconBubble name="mail" /> Danke-Liste</h2>
           {allReservations.length === 0 ? (
             <p className="muted text-sm">Keine Reservierungen.</p>
           ) : (
@@ -255,7 +255,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
 
       {otherLists.length > 0 && (
         <section className="card">
-          <h2 className="mb-2 font-extrabold">Offene Wünsche in andere Liste übernehmen</h2>
+          <h2 className="mb-2">Offene Wünsche in andere Liste übernehmen</h2>
           <form action={copyOpenItems} className="flex flex-wrap gap-2">
             <input type="hidden" name="id" value={list.id} />
             <select className="input max-w-xs" name="target_id" aria-label="Zielliste">

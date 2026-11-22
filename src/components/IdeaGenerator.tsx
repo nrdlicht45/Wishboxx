@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./Icon";
 import { useActionState, useState, useTransition } from "react";
 import { addItem, generateIdeas, type IdeaWithLink, type IdeasState } from "@/app/actions";
 import { SubmitButton } from "./SubmitButton";
@@ -84,7 +85,7 @@ export function IdeaGenerator({ listId, defaults }: { listId: number; defaults: 
         <div className="flex items-center gap-3">
           <button type="button" className={kidMode ? "btn-ghost" : "btn"} onClick={() => setKidMode(false)}>Liste</button>
           <button type="button" className={kidMode ? "btn" : "btn-ghost"} onClick={() => { setKidMode(true); setIndex(0); }}>
-            🧒 Kindermodus {defaults.name ? `für ${defaults.name}` : ""}
+            <Icon name="child" /> Kindermodus {defaults.name ? `für ${defaults.name}` : ""}
           </button>
         </div>
       )}
@@ -93,19 +94,19 @@ export function IdeaGenerator({ listId, defaults }: { listId: number; defaults: 
         <div className="card mx-auto max-w-md text-center">
           {current ? (
             <>
-              <div className="text-6xl" aria-hidden>🎁</div>
-              <h3 className="mt-3 text-2xl font-extrabold">{current.title}</h3>
+              <span className="thumb mx-auto" style={{ width: 96, height: 96 }}><Icon name="gift" size={40} /></span>
+              <h3 className="mt-3 text-2xl">{current.title}</h3>
               <p className="muted mt-2">{current.description}</p>
               <p className="mt-1 text-sm">ca. {current.price_estimate} €</p>
               <div className="mt-6 flex justify-center gap-4">
-                <button type="button" className="btn-ghost text-2xl" onClick={() => setIndex(index + 1)} aria-label="Nein">👎</button>
+                <button type="button" className="btn-ghost text-2xl" onClick={() => setIndex(index + 1)} aria-label="Nein"><Icon name="thumbdown" size={24} /></button>
                 <button type="button" className="btn text-2xl" disabled={pending}
-                  onClick={() => { take(current); setIndex(index + 1); }} aria-label="Ja, auf die Liste">👍</button>
+                  onClick={() => { take(current); setIndex(index + 1); }} aria-label="Ja, auf die Liste"><Icon name="thumbup" size={24} /></button>
               </div>
               <p className="muted mt-3 text-xs">{index + 1} von {ideas.length}</p>
             </>
           ) : (
-            <p className="font-bold">Fertig! {added.size} Wünsche ausgesucht. 🎉</p>
+            <p className="font-bold">Fertig! {added.size} Wünsche ausgesucht.</p>
           )}
         </div>
       )}
@@ -115,11 +116,11 @@ export function IdeaGenerator({ listId, defaults }: { listId: number; defaults: 
           {ideas.map((idea) => (
             <div key={idea.title} className="card flex flex-col gap-2">
               <div className="flex items-start justify-between gap-2">
-                <h3 className="font-extrabold">{idea.title}</h3>
+                <h3 className="font-bold">{idea.title}</h3>
                 <span className="chip whitespace-nowrap">ca. {idea.price_estimate} €</span>
               </div>
               <p className="text-sm">{idea.description}</p>
-              <p className="muted text-sm">💡 {idea.reason}</p>
+              <p className="muted flex items-start gap-2 text-sm"><Icon name="bulb" size={16} className="mt-0.5 shrink-0" /> {idea.reason}</p>
               <div className="mt-auto flex flex-wrap gap-2 pt-2">
                 {added.has(idea.title) ? (
                   <span className="chip chip-ok">✓ auf der Liste</span>

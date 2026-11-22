@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./Icon";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -6,35 +7,37 @@ import { usePathname } from "next/navigation";
 export function TabBar({ isAdmin, logoutAction }: { isAdmin: boolean; logoutAction: () => Promise<void> }) {
   const path = usePathname();
   const tabs = [
-    { href: "/dashboard", icon: "📦", label: "Kisten", active: path === "/dashboard" || path.startsWith("/lists/") && path !== "/lists/new" },
-    { href: "/lists/new", icon: "➕", label: "Neu", active: path === "/lists/new" },
-    { href: "/recipients/new", icon: "🧒", label: "Kinder", active: path.startsWith("/recipients") },
-    ...(isAdmin ? [{ href: "/admin", icon: "⚙️", label: "Admin", active: path.startsWith("/admin") }] : []),
+    { href: "/dashboard", icon: "home", label: "Übersicht", active: path === "/dashboard" || (path.startsWith("/lists/") && path !== "/lists/new") },
+    { href: "/lists/new", icon: "plus", label: "Neue Kiste", active: path === "/lists/new" },
+    { href: "/recipients/new", icon: "users", label: "Familie", active: path.startsWith("/recipients") },
+    ...(isAdmin ? [{ href: "/admin", icon: "settings", label: "Admin", active: path.startsWith("/admin") }] : []),
   ];
+  const style = (active: boolean) => ({ color: active ? "var(--violet)" : "var(--muted)" });
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-20 border-t sm:hidden"
-      style={{ background: "var(--card)", borderColor: "var(--line)", paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="fixed inset-x-0 bottom-0 z-20 sm:hidden"
+      style={{
+        background: "color-mix(in srgb, var(--card) 88%, transparent)",
+        backdropFilter: "blur(12px)",
+        boxShadow: "0 -4px 20px rgba(120,80,170,.08)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
       aria-label="Hauptnavigation"
     >
       <ul className="flex justify-around">
         {tabs.map((t) => (
           <li key={t.href} className="flex-1">
-            <Link
-              href={t.href}
-              aria-current={t.active ? "page" : undefined}
-              className="flex flex-col items-center py-2 text-xs font-bold"
-              style={{ color: t.active ? "var(--color-brand-600)" : "var(--muted)" }}
-            >
-              <span className="text-xl" aria-hidden>{t.icon}</span>
+            <Link href={t.href} aria-current={t.active ? "page" : undefined}
+              className="flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold" style={style(t.active)}>
+              <Icon name={t.icon} size={22} />
               {t.label}
             </Link>
           </li>
         ))}
         <li className="flex-1">
           <form action={logoutAction}>
-            <button type="submit" className="flex w-full flex-col items-center py-2 text-xs font-bold" style={{ color: "var(--muted)" }}>
-              <span className="text-xl" aria-hidden>👋</span>
+            <button type="submit" className="flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] font-semibold" style={style(false)}>
+              <Icon name="logout" size={22} />
               Abmelden
             </button>
           </form>

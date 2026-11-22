@@ -23,7 +23,7 @@ export default async function SharePage({
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
-      <h1 className="text-2xl font-extrabold">🎁 In die Kiste legen</h1>
+      <h1 className="text-3xl">In die <span className="g">Kiste legen</span></h1>
       {lists.length === 0 ? (
         <div className="card space-y-3">
           <p>Du hast noch keine Kiste. Leg zuerst eine an – dann kannst du Wünsche direkt aus anderen Apps teilen.</p>

@@ -1,12 +1,24 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { ageFromBirthdate, getLists, getRecipients, OCCASIONS } from "@/lib/repo";
-import { dateDe } from "@/lib/format";
+import { ageFromBirthdate, eventIsOver, getListStats, getLists, getRecipients, OCCASIONS } from "@/lib/repo";
+import { daysUntil } from "@/lib/reminders";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { Icon, IconBubble } from "@/components/Icon";
 
-const OCC_ICON: Record<string, string> = {
-  birthday: "🎂", christmas: "🎄", easter: "🐣", school: "🎒", communion: "🕊️", baby: "🍼", other: "🎁",
-};
+const MONTHS = ["JAN", "FEB", "MÄR", "APR", "MAI", "JUN", "JUL", "AUG", "SEP", "OKT", "NOV", "DEZ"];
+
+function DateTile({ date }: { date: string | null }) {
+  if (!date) {
+    return <span className="thumb" style={{ width: 56, height: 56 }}><Icon name="gift" size={24} /></span>;
+  }
+  const d = new Date(date);
+  return (
+    <span className="thumb flex-col" style={{ width: 56, height: 56 }}>
+      <span className="text-[11px] font-semibold muted">{MONTHS[d.getMonth()]}</span>
+      <span className="display text-xl" style={{ color: "var(--ink)" }}>{d.getDate()}</span>
+    </span>
+  );
+}
 
 export default async function Dashboard() {
   const user = await requireUser();
@@ -14,64 +26,110 @@ export default async function Dashboard() {
   const lists = getLists(user.id);
   const active = lists.filter((l) => !l.archived);
   const archived = lists.filter((l) => l.archived);
+  const upcoming = active
+    .filter((l) => l.event_date && !eventIsOver(l))
+    .sort((a, b) => a.event_date!.localeCompare(b.event_date!));
+  const next = upcoming[0] ?? active[0];
+  const nextStats = next ? getListStats(next.id) : null;
+  const others = active.filter((l) => l.id !== next?.id);
+
+  const done: { icon: string; text: string }[] = [];
+  if (next && nextStats) {
+    if (next.reveal_mode !== "surprise" || eventIsOver(next)) {
+      if (nextStats.purchased) done.push({ icon: "check", text: `${nextStats.purchased} von ${nextStats.reservations} reservierten Geschenken sind schon gekauft` });
+      for (const g of nextStats.groups.filter((x) => x.pct > 0)) done.push({ icon: "users", text: `Gruppengeschenk „${g.title}“ zu ${g.pct} % finanziert` });
+    }
+    if (nextStats.reminded) done.push({ icon: "bell", text: `${nextStats.reminded} ${nextStats.reminded === 1 ? "Gast wurde" : "Gäste wurden"} ans Kaufen erinnert` });
+    if (!done.length) done.push({ icon: "share", text: "Teile die Kiste – Reservierungen und Erinnerungen laufen dann automatisch" });
+  }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-extrabold">Hallo {user.name.split(" ")[0]} 👋</h1>
-        <Link href="/lists/new" className="btn">+ Neue Kiste / Liste</Link>
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-3xl leading-tight sm:text-4xl">
+        Hallo {user.name.split(" ")[0]},<br />
+        <span className="g">{next ? "alles im Griff." : "schön, dass du da bist."}</span>
+      </h1>
 
       <InstallPrompt />
 
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-xl font-extrabold">Für wen wünschen wir?</h2>
-          <Link href="/recipients/new" className="btn-ghost">+ Kind / Person</Link>
+      {!next ? (
+        <div className="card space-y-3">
+          <IconBubble name="gift" />
+          <h2 className="text-xl">Deine erste Kiste</h2>
+          <p className="muted">Geburtstag, Weihnachten oder Einschulung: Leg eine Kiste an, füll sie mit Wünschen und schick den Link an die Gäste.</p>
+          <Link href="/lists/new" className="btn">Kiste anlegen</Link>
         </div>
-        {recipients.length === 0 ? (
-          <div className="card muted text-sm">
-            Lege zuerst ein Profil an (Alter, Interessen, No-Gos). Damit werden die KI-Vorschläge richtig gut –
-            und du musst es nur einmal machen, egal wie viele Anlässe kommen.
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          <Link href={`/lists/${next.id}`} className="card block space-y-3">
+            <p className="text-sm font-semibold muted">{upcoming[0] ? "Als Nächstes" : "Deine Kiste"}</p>
+            <div className="flex items-center gap-3">
+              <DateTile date={next.event_date} />
+              <div className="min-w-0">
+                <p className="truncate text-lg font-bold">{next.title}</p>
+                <p className="text-sm muted">
+                  {next.event_date && !eventIsOver(next) ? `in ${daysUntil(next.event_date)} Tagen · ` : ""}
+                  {nextStats!.taken} von {nextStats!.items} Wünschen vergeben
+                </p>
+              </div>
+            </div>
+            <div className="progress"><div style={{ width: `${nextStats!.items ? (nextStats!.taken / nextStats!.items) * 100 : 0}%` }} /></div>
+          </Link>
+          <div className="card space-y-3">
+            <p className="text-sm font-semibold muted">Für dich erledigt</p>
+            {done.slice(0, 3).map((d) => (
+              <div key={d.text} className="flex items-center gap-3">
+                <IconBubble name={d.icon} />
+                <p className="text-sm leading-snug">{d.text}</p>
+              </div>
+            ))}
           </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-3">
-            {recipients.map((r) => (
-              <Link key={r.id} href={`/recipients/${r.id}`} className="card hover:border-orange-300">
-                <div className="font-extrabold">{r.name}</div>
-                <div className="muted text-sm">
-                  {ageFromBirthdate(r.birthdate) != null ? `${ageFromBirthdate(r.birthdate)} Jahre` : "Alter unbekannt"}
-                  {r.interests && ` · ${r.interests.split(",").slice(0, 3).join(", ")}`}
+        </div>
+      )}
+
+      {others.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-xl">Weitere Kisten</h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {others.map((l) => (
+              <Link key={l.id} href={`/lists/${l.id}`} className="card flex items-center gap-3">
+                <DateTile date={l.event_date} />
+                <div className="min-w-0">
+                  <p className="display truncate">{l.title}</p>
+                  <p className="text-sm muted">
+                    {OCCASIONS[l.occasion]}
+                    {l.recipient_name && ` · ${l.recipient_name}`} · {l.item_count} Wünsche
+                  </p>
                 </div>
               </Link>
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
-      <section>
-        <h2 className="mb-3 text-xl font-extrabold">Aktive Kisten</h2>
-        {active.length === 0 ? (
-          <div className="card muted text-sm">Noch keine Liste. Leg los mit deiner ersten Geburtstagskiste!</div>
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl">Familie</h2>
+          <Link href="/recipients/new" className="btn-ghost"><Icon name="plus" /> Kind / Person</Link>
+        </div>
+        {recipients.length === 0 ? (
+          <div className="card text-sm muted">
+            Leg für jedes Kind ein Profil an – Alter, Interessen, No-Gos. Einmal gemacht, gilt es für alle Anlässe und
+            macht die KI-Ideen richtig gut.
+          </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {active.map((l) => (
-              <Link key={l.id} href={`/lists/${l.id}`} className="card flex gap-3 hover:border-orange-300">
-                <div className="text-4xl" aria-hidden>{OCC_ICON[l.occasion] ?? "🎁"}</div>
-                <div className="min-w-0">
-                  <div className="truncate font-extrabold">{l.title}</div>
-                  <div className="muted text-sm">
-                    {OCCASIONS[l.occasion]}
-                    {l.recipient_name && ` · für ${l.recipient_name}`}
-                    {l.event_date && ` · ${dateDe(l.event_date)}`}
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    <span className="chip">{l.item_count} Wünsche</span>
-                    {l.reveal_mode !== "surprise" && (
-                      <span className="chip chip-ok">{l.reservation_count} Reservierungen</span>
-                    )}
-                  </div>
-                </div>
+          <div className="flex flex-wrap gap-2">
+            {recipients.map((r) => (
+              <Link key={r.id} href={`/recipients/${r.id}`} className="card flex items-center gap-3 !py-3">
+                <span className="thumb display" style={{ width: 40, height: 40, borderRadius: 999, color: "var(--ink)" }}>
+                  {r.name.slice(0, 1).toUpperCase()}
+                </span>
+                <span>
+                  <span className="block font-semibold">{r.name}</span>
+                  <span className="block text-xs muted">
+                    {ageFromBirthdate(r.birthdate) != null ? `${ageFromBirthdate(r.birthdate)} Jahre` : "Alter offen"}
+                  </span>
+                </span>
               </Link>
             ))}
           </div>
@@ -79,13 +137,11 @@ export default async function Dashboard() {
       </section>
 
       {archived.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-lg font-extrabold muted">Archiv</h2>
+        <section className="space-y-2">
+          <h2 className="text-lg muted">Archiv</h2>
           <ul className="space-y-1 text-sm">
             {archived.map((l) => (
-              <li key={l.id}>
-                <Link className="underline" href={`/lists/${l.id}`}>{l.title}</Link>
-              </li>
+              <li key={l.id}><Link className="underline" href={`/lists/${l.id}`}>{l.title}</Link></li>
             ))}
           </ul>
         </section>

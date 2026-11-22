@@ -1,3 +1,4 @@
+import { Icon, IconBubble } from "@/components/Icon";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -20,21 +21,21 @@ export default async function ReservationPage({ params }: { params: Promise<{ to
   return (
     <div className="mx-auto max-w-xl space-y-4">
       <section className="card space-y-3 text-center">
-        <div className="text-5xl" aria-hidden>{r.purchased ? "✅" : "🛍️"}</div>
-        <h1 className="text-2xl font-extrabold">{item.title}</h1>
+        <span className="mx-auto"><IconBubble name={r.purchased ? "check" : "bag"} size={64} /></span>
+        <h1 className="text-2xl">{item.title}</h1>
         <p className="muted">
           für {list.title}
           {recipientName && ` (${recipientName})`}
           {list.event_date && ` · ${dateDe(list.event_date)}`}
         </p>
         {days != null && days >= 0 && (
-          <p className="chip">{days === 0 ? "Heute ist die Feier! 🎉" : `Noch ${days} ${days === 1 ? "Tag" : "Tage"} bis zur Feier`}</p>
+          <p className="chip">{days === 0 ? "Heute ist die Feier!" : `Noch ${days} ${days === 1 ? "Tag" : "Tage"} bis zur Feier`}</p>
         )}
         <p className="text-sm">
           Reserviert von <strong>{r.guest_name}</strong>
           {r.kind === "pledge" && <> · Zusage {euro(r.amount)}</>}
         </p>
-        {r.kind === "pledge" && list.payment_hint && <p className="muted text-sm">💸 {list.payment_hint}</p>}
+        {r.kind === "pledge" && list.payment_hint && <p className="muted text-sm">{list.payment_hint}</p>}
       </section>
 
       <section className="card flex flex-wrap justify-center gap-2">
@@ -42,7 +43,7 @@ export default async function ReservationPage({ params }: { params: Promise<{ to
           <a className="btn" href={`/go/${item.id}`} target="_blank" rel="sponsored nofollow noopener">Jetzt kaufen*</a>
         )}
         {item.source === "store" && list.shop_name && (
-          <p className="w-full text-center text-sm">🏪 Erhältlich bei {list.shop_name} {list.shop_address && `(${list.shop_address})`}</p>
+          <p className="w-full text-center text-sm">Erhältlich bei {list.shop_name} {list.shop_address && `(${list.shop_address})`}</p>
         )}
         <form action={togglePurchased}>
           <input type="hidden" name="token" value={r.token} />
@@ -51,7 +52,7 @@ export default async function ReservationPage({ params }: { params: Promise<{ to
           </SubmitButton>
         </form>
         {list.event_date && (
-          <a className="btn-ghost" href={`/r/${r.token}/ics`}>📅 In Kalender speichern</a>
+          <a className="btn-ghost" href={`/r/${r.token}/ics`}><Icon name="calendar" /> In Kalender speichern</a>
         )}
       </section>
 

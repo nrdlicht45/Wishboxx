@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./Icon";
 import { useActionState, useState } from "react";
 import { reserveItem } from "@/app/actions";
 import { SubmitButton } from "./SubmitButton";
@@ -23,10 +24,10 @@ export function ReserveForm({
     return (
       <div className="space-y-2">
         <p className="chip chip-ok">
-          🎉 Danke! {groupGift ? "Deine Zusage ist eingetragen." : "Das Geschenk ist für dich reserviert."}
+          Danke! {groupGift ? "Deine Zusage ist eingetragen." : "Das Geschenk ist für dich reserviert."}
         </p>
         <p className="flex flex-wrap gap-2 text-sm">
-          {hasDate && <a className="btn-ghost" href={`/r/${state.token}/ics`}>📅 Erinnerung in Kalender</a>}
+          {hasDate && <a className="btn-ghost" href={`/r/${state.token}/ics`}><Icon name="calendar" /> Erinnerung in Kalender</a>}
           <a className="btn-ghost" href={`/r/${state.token}`}>Reservierung verwalten</a>
         </p>
       </div>
@@ -34,8 +35,8 @@ export function ReserveForm({
   }
   if (!open) {
     return (
-      <button type="button" className="btn" onClick={() => setOpen(true)}>
-        {groupGift ? "🤝 Ich lege mit zusammen" : "🎁 Ich schenke das"}
+      <button type="button" className={groupGift ? "btn-ghost" : "btn"} onClick={() => setOpen(true)}>
+        <Icon name={groupGift ? "users" : "gift"} /> {groupGift ? "Ich mache mit" : "Ich schenke das"}
       </button>
     );
   }
