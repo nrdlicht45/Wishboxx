@@ -18,6 +18,7 @@ import { PhotoWish } from "@/components/PhotoWish";
 import { LoginLinkForm } from "@/components/LoginLinkForm";
 import {
   archiveList,
+  releaseReservation,
   smartAdd,
   copyOpenItems,
   deleteItem,
@@ -142,14 +143,33 @@ export default async function ListPage({
                     ) : it.reserved_count > 0 ? (
                       <span className="chip chip-ok">
                         ✓ {it.reserved_count}/{it.quantity} reserviert
-                        {showNames && ` von ${it.reservations.map((r) => r.guest_name).join(", ")}`}
-                        {it.reservations.length > 0 &&
-                          ` · ${it.reservations.filter((r) => r.purchased).length}/${it.reservations.length} gekauft`}
+                        {` · ${it.reservations.filter((r) => r.purchased).length}/${it.reservations.length} gekauft`}
                       </span>
                     ) : (
                       <span className="muted">noch frei</span>
                     )}
                   </div>
+                )}
+                {showStatus && it.reservations.length > 0 && (
+                  <ul className="space-y-1 text-sm">
+                    {it.reservations.map((r) => (
+                      <li key={r.id} className="flex flex-wrap items-center gap-x-2">
+                        <span className="font-semibold">{showNames ? r.guest_name : "Ein Gast"}</span>
+                        {r.kind === "pledge" && <span className="muted">{euro(r.amount)}</span>}
+                        {r.purchased ? <span className="muted">· gekauft</span> : null}
+                        {showNames && r.message && <span className="muted">· „{r.message}“</span>}
+                        <details className="inline">
+                          <summary className="muted cursor-pointer underline">freigeben</summary>
+                          <form action={releaseReservation} className="mt-1 flex items-center gap-2">
+                            <input type="hidden" name="reservation_id" value={r.id} />
+                            <input type="hidden" name="list_id" value={list.id} />
+                            <span className="muted text-xs">Wunsch wird wieder für alle frei.</span>
+                            <button type="submit" className="chip chip-pink">Ja, freigeben</button>
+                          </form>
+                        </details>
+                      </li>
+                    ))}
+                  </ul>
                 )}
                 <details className="text-sm">
                   <summary className="muted cursor-pointer">Bearbeiten</summary>

@@ -21,6 +21,7 @@ import { buildSearchUrl, isSafeHttpUrl } from "@/lib/affiliate";
 import { fetchProductMeta } from "@/lib/metadata";
 import {
   ageFromBirthdate,
+  eventIsOver,
   getItemsWithStatus,
   getList,
   getListByToken,
@@ -425,6 +426,7 @@ export async function reserveItem(_: unknown, fd: FormData) {
   const result = tx();
   if ("token" in result && result.token) {
     await rememberGuestToken(listToken, result.token);
+    (await cookies()).set("wb_guest_name", guestName, { httpOnly: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 365, path: "/" });
     if (email) await sendReservationMail(result.token);
     revalidatePath(`/k/${listToken}`);
     return { ok: true, token: result.token };
@@ -646,4 +648,18 @@ export async function smartAdd(fd: FormData) {
     }
   }
   await addItem(out);
+}
+
+/** Listen-Inhaberin gibt eine Reservierung wieder frei (z.B. versehentlich oder blockiert). */
+export async function releaseReservation(fd: FormData) {
+  const user = await requireUser();
+  const listId = Number(fd.get("list_id"));
+  const list = getList(listId, user.id);
+  if (!list) return;
+  if (list.reveal_mode === "surprise" && !eventIsOver(list)) return; // im Überraschungsmodus nicht sichtbar
+  getDb()
+    .prepare("DELETE FROM reservations WHERE id = ? AND item_id IN (SELECT id FROM items WHERE list_id = ?)")
+    .run(Number(fd.get("reservation_id")), listId);
+  revalidatePath(`/lists/${listId}`);
+  revalidatePath(`/k/${list.share_token}`);
 }

@@ -32,13 +32,6 @@ const FILTERS = [
   { key: "group", label: "Gemeinsam" },
 ] as const;
 
-const initials = (name: string) =>
-  name
-    .split(/[\s&+]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join("");
 
 export default async function GuestPage({
   params,
@@ -60,7 +53,14 @@ export default async function GuestPage({
     ? (getDb().prepare("SELECT name FROM recipients WHERE id = ?").get(list.recipient_id) as { name: string } | undefined)?.name
     : undefined;
 
-  const myTokens = new Set(((await cookies()).get(`wb_g_${token}`)?.value ?? "").split(".").filter(Boolean));
+  const jar = await cookies();
+  const rememberedName = jar.get("wb_guest_name")?.value ?? "";
+  const childName = recipientName ?? "Das Geburtstagskind";
+  const privacyHint =
+    list.reveal_mode === "full"
+      ? "Nur die Familie sieht deinen Namen – für die Danke-Liste. Andere Gäste sehen ihn nicht."
+      : `Nur für die Danke-Liste der Familie. Andere Gäste sehen deinen Namen nicht${list.reveal_mode === "surprise" ? `, und ${childName} erfährt erst nach dem Fest, wer was schenkt` : ""}.`;
+  const myTokens = new Set((jar.get(`wb_g_${token}`)?.value ?? "").split(".").filter(Boolean));
   const all = getItemsWithStatus(list.id);
   const visibleFilters = FILTERS.filter(
     (f) =>
@@ -201,25 +201,10 @@ export default async function GuestPage({
               {it.description && <p className="muted text-sm">{it.description}</p>}
               {!hideStatus && !!it.is_group_gift && it.price != null && (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    {pledgers.length > 0 && (
-                      <div className="flex">
-                        {pledgers.slice(0, 3).map((r, i) => (
-                          <span key={r.id} className="thumb text-[10px] font-bold"
-                            style={{ width: 28, height: 28, borderRadius: 999, marginLeft: i ? -8 : 0, border: "2px solid var(--card)", color: "var(--ink)" }}>
-                            {initials(r.guest_name)}
-                          </span>
-                        ))}
-                        {pledgers.length > 3 && (
-                          <span className="thumb text-[10px] font-bold"
-                            style={{ width: 28, height: 28, borderRadius: 999, marginLeft: -8, border: "2px solid var(--card)", color: "var(--ink)" }}>
-                            +{pledgers.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    <p className="text-sm muted">{euro(it.pledged_sum)} von {euro(it.price)} gesammelt</p>
-                  </div>
+                  <p className="text-sm muted">
+                    {pledgers.length > 0 && `${pledgers.length} ${pledgers.length === 1 ? "Gast macht" : "Gäste machen"} mit · `}
+                    {euro(it.pledged_sum)} von {euro(it.price)} gesammelt
+                  </p>
                   <div className="progress"><div style={{ width: `${Math.min(100, (it.pledged_sum / it.price) * 100)}%` }} /></div>
                 </div>
               )}
@@ -236,7 +221,8 @@ export default async function GuestPage({
                 )}
                 {!mineR && taken && <span className="chip chip-ok"><Icon name="check" size={13} /> Schon vergeben</span>}
                 {!taken && !hideStatus && !(mineR && !it.is_group_gift) && (
-                  <ReserveForm listToken={token} itemId={it.id} groupGift={!!it.is_group_gift} remaining={remaining} hasDate={!!list.event_date} />
+                  <ReserveForm listToken={token} itemId={it.id} groupGift={!!it.is_group_gift} remaining={remaining} hasDate={!!list.event_date}
+                    defaultName={rememberedName} privacyHint={privacyHint} />
                 )}
                 {it.url && (
                   <a href={`/go/${it.id}`} target="_blank" rel="sponsored nofollow noopener" className="btn-ghost">

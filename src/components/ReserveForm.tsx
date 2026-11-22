@@ -10,12 +10,16 @@ export function ReserveForm({
   groupGift,
   remaining,
   hasDate,
+  defaultName = "",
+  privacyHint,
 }: {
   listToken: string;
   itemId: number;
   groupGift: boolean;
   remaining: number | null;
   hasDate: boolean;
+  defaultName?: string;
+  privacyHint: string;
 }) {
   const [open, setOpen] = useState(false);
   const [state, action] = useActionState(reserveItem, undefined);
@@ -41,21 +45,38 @@ export function ReserveForm({
     );
   }
   return (
-    <form action={action} className="mt-2 grid gap-2 sm:grid-cols-2">
+    <form action={action} className="mt-2 grid w-full gap-3">
       <input type="hidden" name="list_token" value={listToken} />
       <input type="hidden" name="item_id" value={itemId} />
-      <input className="input" name="guest_name" required placeholder="Euer Name (z.B. Ben & Mama Julia)" aria-label="Name" />
-      <input className="input" name="guest_email" type="email" placeholder="E-Mail für Erinnerung (optional)" aria-label="E-Mail" />
+      <div>
+        <label className="label" htmlFor={`rn-${itemId}`}>Von wem?</label>
+        <input className="input" id={`rn-${itemId}`} name="guest_name" required defaultValue={defaultName}
+          autoComplete="name" placeholder="z.B. Ben & Mama Julia" aria-describedby={`rh-${itemId}`} />
+        <p id={`rh-${itemId}`} className="muted mt-1 text-xs">{privacyHint}</p>
+      </div>
       {groupGift && (
-        <input className="input" name="amount" inputMode="decimal" required
-          placeholder={remaining != null ? `Betrag in € (noch ${remaining.toFixed(2)} € offen)` : "Betrag in €"}
-          aria-label="Betrag" />
+        <div>
+          <label className="label" htmlFor={`ra-${itemId}`}>Betrag in €{remaining != null ? ` (noch ${remaining.toFixed(2).replace(".", ",")} € offen)` : ""}</label>
+          <input className="input" id={`ra-${itemId}`} name="amount" inputMode="decimal" required />
+        </div>
       )}
-      <input className="input sm:col-span-2" name="message" placeholder="Gruß ans Geburtstagskind (optional)" aria-label="Nachricht" />
+      <details>
+        <summary className="muted cursor-pointer text-sm">Erinnerung & Notiz (optional)</summary>
+        <div className="mt-2 grid gap-3">
+          <div>
+            <label className="label" htmlFor={`re-${itemId}`}>E-Mail für Erinnerung</label>
+            <input className="input" id={`re-${itemId}`} name="guest_email" type="email" autoComplete="email" />
+          </div>
+          <div>
+            <label className="label" htmlFor={`rm-${itemId}`}>Notiz für die Familie</label>
+            <input className="input" id={`rm-${itemId}`} name="message" placeholder="z.B. Wir bringen es zur Feier mit" />
+          </div>
+        </div>
+      </details>
       {state && "error" in state && state.error && (
-        <p className="text-sm font-bold text-red-600 sm:col-span-2">{state.error}</p>
+        <p className="text-sm font-bold" style={{ color: "var(--pink-ink)" }}>{state.error}</p>
       )}
-      <div className="flex gap-2 sm:col-span-2">
+      <div className="flex gap-2">
         <SubmitButton>{groupGift ? "Zusagen" : "Verbindlich reservieren"}</SubmitButton>
         <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>Abbrechen</button>
       </div>
