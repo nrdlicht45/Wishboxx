@@ -65,6 +65,7 @@ export function QuickStart({ known = [] }: { known?: KnownChild[] }) {
   const [interests, setInterests] = useState<string[]>([]);
   const [own, setOwn] = useState("");
   const [nogos, setNogos] = useState<string[]>([]);
+  const [ai, setAi] = useState(true);
   const pickChild = (c: KnownChild | null) => {
     setChildId(c?.id ?? null);
     setName(c?.name ?? "");
@@ -92,6 +93,7 @@ export function QuickStart({ known = [] }: { known?: KnownChild[] }) {
       <input type="hidden" name="budget" value={budget} />
       <input type="hidden" name="interests" value={[...interests, ...own.split(",").map((s) => s.trim()).filter(Boolean)].join(", ")} />
       <input type="hidden" name="avoid" value={nogos.join(", ")} />
+      <input type="hidden" name="ai" value={ai ? "5" : "0"} />
 
       <div className="flex items-center gap-2" aria-label={`Schritt ${step + 1} von 3`}>
         {[0, 1, 2].map((i) => (
@@ -174,6 +176,14 @@ export function QuickStart({ known = [] }: { known?: KnownChild[] }) {
               {NOGOS.map((i) => <Chip key={i} on={nogos.includes(i)} onClick={() => toggle(nogos, setNogos, i)}>{i}</Chip>)}
             </div>
           </div>
+          <div className="card space-y-3 !p-4">
+            <p className="font-semibold">Sollen wir dir 5 Vorschläge machen?</p>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="KI-Vorschläge">
+              <Chip on={ai} onClick={() => setAi(true)}>Ja, 5 Ideen vorschlagen</Chip>
+              <Chip on={!ai} onClick={() => setAi(false)}>Nein, ich trage selbst ein</Chip>
+            </div>
+            <p className="muted text-xs">Passend zu Alter, Budget und Interessen – du behältst nur, was passt.</p>
+          </div>
         </section>
       )}
 
@@ -203,7 +213,7 @@ export function QuickStart({ known = [] }: { known?: KnownChild[] }) {
           <div className="flex-1"><Finish /></div>
         )}
       </div>
-      <p className="muted text-center text-xs">Kein Konto nötig. Die KI packt dir passende Ideen direkt in die Boxx – du wählst nur noch aus.</p>
+      <p className="muted text-center text-xs">Kein Konto nötig. Vorschläge kannst du jederzeit entfernen oder später weitere holen.</p>
     </form>
     {state?.needsLogin && (
       <div className="card mx-auto mt-6 max-w-xl space-y-3" role="alert">

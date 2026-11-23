@@ -674,8 +674,14 @@ export async function quickStart(_: unknown, fd: FormData): Promise<QuickStartSt
     )
     .run(user.id, rec.id, defaultTitle(rec.name, occasion, turning), occasion, eventDate, randomToken(9), budgetMin, budgetMax);
   const listId = Number(list.lastInsertRowid);
-  await fillBox(listId, rec, { age: age != null ? Math.round(age) : recipientAge(rec), occasion, budgetMin, budgetMax });
-  redirect(`/lists/${listId}?neu=1`);
+  const suggested = await fillBox(listId, rec, {
+    age: age != null ? Math.round(age) : recipientAge(rec),
+    occasion,
+    budgetMin,
+    budgetMax,
+    aiCount: str(fd, "ai") === "0" ? 0 : 5,
+  });
+  redirect(`/lists/${listId}?neu=1&v=${suggested}`);
 }
 
 /**
@@ -692,6 +698,8 @@ async function fillBox(
     budgetMax: number | null;
     carry?: Item[];
     received?: string[];
+    /** Anzahl KI-Vorschläge (Standard 5, 0 = keine) */
+    aiCount?: number;
   },
 ) {
   const db = getDb();
@@ -711,7 +719,8 @@ async function fillBox(
     ins.run(listId, i.title, i.description, i.url, i.image_url, i.price, i.quantity, i.priority, i.source, i.is_group_gift, sort++);
   }
   const existing = [...memos.map((m) => m.title), ...(opts.carry ?? []).map((i) => i.title)];
-  const count = Math.max(4, 8 - existing.length);
+  const count = opts.aiCount ?? 5;
+  if (count <= 0) return 0;
   const received = opts.received ?? [];
   const ideas = await suggestGifts(
     {
@@ -735,6 +744,7 @@ async function fillBox(
     ins.run(listId, i.title, `${i.description} – ${i.reason}`, buildSearchUrl(i.search_query, providers), null,
       i.price_estimate || null, 1, 2, "ai", 0, sort++);
   }
+  return ideas.ideas.length;
 }
 
 // ---------------- Merkzettel ----------------
@@ -798,10 +808,11 @@ export async function packAgain(fd: FormData) {
   const listId = Number(info.lastInsertRowid);
   db.prepare("UPDATE lists SET archived = 1 WHERE id = ?").run(old.id);
 
+  let suggested = 0;
   if (rec) {
     const fresh = getRecipient(rec.id, user.id)!;
     const age = recipientAge(fresh);
-    await fillBox(listId, fresh, {
+    suggested = await fillBox(listId, fresh, {
       age: age != null && old.occasion === "birthday" ? age + 1 : age,
       occasion: old.occasion,
       budgetMin: old.budget_min,
@@ -816,7 +827,7 @@ export async function packAgain(fd: FormData) {
     );
     carry.forEach((i, n) => ins.run(listId, i.title, i.description, i.url, i.image_url, i.price, i.quantity, i.priority, i.source, i.is_group_gift, n));
   }
-  redirect(`/lists/${listId}?neu=1`);
+  redirect(`/lists/${listId}?neu=1&v=${suggested}`);
 }
 
 // ---------------- Ein Eingabefeld: Link oder Stichwort ----------------

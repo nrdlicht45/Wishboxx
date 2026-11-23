@@ -43,9 +43,9 @@ export default async function ListPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ neu?: string; sichern?: string; schon?: string }>;
+  searchParams: Promise<{ neu?: string; sichern?: string; schon?: string; v?: string }>;
 }) {
-  const { neu, sichern, schon } = await searchParams;
+  const { neu, sichern, schon, v } = await searchParams;
   const user = await requireUser();
   const list = getList(Number((await params).id), user.id);
   if (!list) notFound();
@@ -68,6 +68,9 @@ export default async function ListPage({
   const otherGifts = rsvps.filter((r) => r.other_gift).length;
   const invited = matchInvitees(list.invitees, rsvps.map((r) => r.guest_name));
   const openInvitees = invited.filter((g) => !g.answered);
+  // Anzahl der KI-Vorschläge kommt beim Anlegen über die URL (übernommene Wünsche zählen nicht mit)
+  const aiCount = Math.min(Number(v ?? 0) || 0, items.length);
+  const ownCount = items.length - aiCount;
   const allReservations = items.flatMap((i) => i.reservations.map((r) => ({ ...r, itemTitle: i.title })));
 
   return (
@@ -107,8 +110,20 @@ export default async function ListPage({
       ) : null}
       {neu && (
         <div className="banner space-y-1">
-          <p className="display text-xl">{items.length} Wünsche sind schon eingepackt.</p>
-          <p className="text-sm opacity-95">Tippe bei allem, was nicht passt, auf das ✕ – und teile die Boxx dann oben über „Teilen“.</p>
+          {items.length > 0 ? (
+            <>
+              <p className="display text-xl">
+                {aiCount > 0 ? `${aiCount} ${aiCount === 1 ? "Wunsch" : "Wünsche"} vorgeschlagen` : `${items.length} Wünsche übernommen`}
+                {ownCount > 0 && aiCount > 0 ? ` – plus ${ownCount} übernommene` : ""}.
+              </p>
+              <p className="text-sm opacity-95">Tippe bei allem, was nicht passt, auf das ✕ – und teile die Boxx dann oben über „Teilen“.</p>
+            </>
+          ) : (
+            <>
+              <p className="display text-xl">Deine Boxx ist angelegt.</p>
+              <p className="text-sm opacity-95">Füge jetzt Wünsche hinzu – per Link, Stichwort, Foto oder mit „KI-Vorschläge dazu“.</p>
+            </>
+          )}
         </div>
       )}
 

@@ -97,6 +97,9 @@ Reservierungs-Link für jedes Gerät, Wünsche per Foto mit KI-Produkterkennung.
 - Einladungskarte mit QR-Code (PDF zum Ausdrucken für Kita-Fächer + Bild für WhatsApp)
 - Ziel: Wishboxx wird das Werkzeug für den ganzen Kindergeburtstag; jede Einladung wirbt neue Eltern
 
+**Vorgemerkte Anpassungen (Backlog):**
+- Zeitauswahl der Feier auf Viertelstunden begrenzen (15-Minuten-Schritte statt minütlich)
+
 **Weitere Ideen:**
 - Native App für Eltern (React Native/Expo) für App Store & Google Play: Push bei neuen Reservierungen,
   „Teilen → Wishboxx“ auch auf dem iPhone (die installierbare Web-App mit Teilen-Menü auf Android ist umgesetzt)
