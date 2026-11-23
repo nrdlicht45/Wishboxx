@@ -191,30 +191,53 @@ export default async function ListPage({
                   </ul>
                 )}
                 <details className="text-sm">
-                  <summary className="muted cursor-pointer">Bearbeiten</summary>
-                  <form action={updateItem} className="mt-2 grid gap-2 sm:grid-cols-6">
+                  <summary className="chip cursor-pointer list-none" style={{ display: "inline-flex" }}>
+                    <Icon name="pencil" size={13} /> Bearbeiten
+                  </summary>
+                  <form action={updateItem} className="mt-3 grid gap-3 sm:grid-cols-6">
                     <input type="hidden" name="id" value={it.id} />
                     <input type="hidden" name="list_id" value={list.id} />
-                    <input className="input sm:col-span-3" name="title" defaultValue={it.title} aria-label="Titel" />
-                    <input className="input" name="price" defaultValue={it.price ?? ""} aria-label="Preis" />
-                    <input className="input" name="quantity" type="number" min={1} max={20} defaultValue={it.quantity} aria-label="Anzahl" />
-                    <select className="input" name="priority" defaultValue={it.priority} aria-label="Priorität">
-                      {Object.entries(PRIO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                    </select>
-                    <input className="input sm:col-span-6" name="url" defaultValue={it.url ?? ""} placeholder="Link" aria-label="Link" />
-                    <textarea className="input sm:col-span-6" name="description" defaultValue={it.description} rows={2}
-                      placeholder="Hinweis für Gäste, z.B. Farbe, Größe" aria-label="Beschreibung" />
-                    <label className="flex items-center gap-2 sm:col-span-4">
+                    {showStatus && it.reservations.length > 0 && (
+                      <p className="chip chip-pink sm:col-span-6" style={{ whiteSpace: "normal" }}>
+                        Schon {it.is_group_gift ? "unterstützt" : "reserviert"} – größere Änderungen am besten kurz absprechen.
+                      </p>
+                    )}
+                    <div className="sm:col-span-6">
+                      <label className="label" htmlFor={`e-title-${it.id}`}>Titel</label>
+                      <input className="input" id={`e-title-${it.id}`} name="title" defaultValue={it.title} required />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="label" htmlFor={`e-price-${it.id}`}>Preis €</label>
+                      <input className="input" id={`e-price-${it.id}`} name="price" inputMode="decimal" defaultValue={it.price ?? ""} />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="label" htmlFor={`e-qty-${it.id}`}>Anzahl</label>
+                      <input className="input" id={`e-qty-${it.id}`} name="quantity" type="number" min={1} max={20} defaultValue={it.quantity} />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="label" htmlFor={`e-prio-${it.id}`}>Priorität</label>
+                      <select className="input" id={`e-prio-${it.id}`} name="priority" defaultValue={it.priority}>
+                        {Object.entries(PRIO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                      </select>
+                    </div>
+                    <div className="sm:col-span-6">
+                      <label className="label" htmlFor={`e-url-${it.id}`}>Link zum Produkt (neuer Link lädt Bild und Preis neu)</label>
+                      <input className="input" id={`e-url-${it.id}`} name="url" type="url" defaultValue={it.url ?? ""} placeholder="https://…" />
+                    </div>
+                    <div className="sm:col-span-6">
+                      <label className="label" htmlFor={`e-desc-${it.id}`}>Hinweis für Gäste</label>
+                      <textarea className="input" id={`e-desc-${it.id}`} name="description" defaultValue={it.description} rows={2}
+                        placeholder="z.B. Farbe, Größe, Band 2" />
+                    </div>
+                    <label className="flex items-center gap-2 sm:col-span-3">
+                      <input type="checkbox" name="is_store" defaultChecked={it.source === "store"} /> Liegt im Laden{list.shop_name && ` (${list.shop_name})`}
+                    </label>
+                    <label className="flex items-center gap-2 sm:col-span-3">
                       <input type="checkbox" name="is_group_gift" defaultChecked={!!it.is_group_gift} /> Gruppengeschenk
                     </label>
-                    <div className="flex gap-2 sm:col-span-2">
-                      <SubmitButton className="btn-ghost">Speichern</SubmitButton>
+                    <div className="flex flex-wrap items-center gap-3 sm:col-span-6">
+                      <SubmitButton className="btn">Speichern</SubmitButton>
                     </div>
-                  </form>
-                  <form action={deleteItem} className="mt-2">
-                    <input type="hidden" name="id" value={it.id} />
-                    <input type="hidden" name="list_id" value={list.id} />
-                    <button className="text-red-600 underline" type="submit">Wunsch löschen</button>
                   </form>
                 </details>
               </div>

@@ -300,25 +300,41 @@ export async function updateItem(fd: FormData) {
   const user = await requireUser();
   const id = Number(fd.get("id"));
   const listId = Number(fd.get("list_id"));
-  if (!getList(listId, user.id)) return;
-  const url = str(fd, "url", 2000);
-  getDb()
-    .prepare(
-      `UPDATE items SET title=?, description=?, url=?, price=?, quantity=?, priority=?, is_group_gift=?
-       WHERE id=? AND list_id=?`,
-    )
-    .run(
-      str(fd, "title", 160) || "Wunsch",
-      str(fd, "description", 1000),
-      url && isSafeHttpUrl(url) ? url : null,
-      num(fd, "price"),
-      Math.max(1, Math.min(20, Number(fd.get("quantity") || 1))),
-      [1, 2, 3].includes(Number(fd.get("priority"))) ? Number(fd.get("priority")) : 2,
-      fd.get("is_group_gift") ? 1 : 0,
-      id,
-      listId,
-    );
+  const list = getList(listId, user.id);
+  if (!list) return;
+  const db = getDb();
+  const old = db.prepare("SELECT * FROM items WHERE id = ? AND list_id = ?").get(id, listId) as Item | undefined;
+  if (!old) return;
+  const rawUrl = str(fd, "url", 2000);
+  const url = rawUrl && isSafeHttpUrl(rawUrl) ? rawUrl : null;
+  let price = num(fd, "price");
+  let image = old.image_url;
+  // Neuer Link → Bild (und fehlenden Preis) neu laden
+  if (url && url !== old.url) {
+    const meta = await fetchProductMeta(url);
+    image = meta.image && isSafeHttpUrl(meta.image) ? meta.image : null;
+    price ??= meta.price ?? null;
+  }
+  if (!url && old.url) image = old.source === "photo" ? old.image_url : null;
+  const source = fd.get("is_store") ? "store" : old.source === "store" ? "link" : old.source;
+  db.prepare(
+    `UPDATE items SET title=?, description=?, url=?, image_url=?, price=?, quantity=?, priority=?, is_group_gift=?, source=?
+     WHERE id=? AND list_id=?`,
+  ).run(
+    str(fd, "title", 160) || "Wunsch",
+    str(fd, "description", 1000),
+    url,
+    image,
+    price,
+    Math.max(1, Math.min(20, Number(fd.get("quantity") || 1))),
+    [1, 2, 3].includes(Number(fd.get("priority"))) ? Number(fd.get("priority")) : 2,
+    fd.get("is_group_gift") ? 1 : 0,
+    source,
+    id,
+    listId,
+  );
   revalidatePath(`/lists/${listId}`);
+  revalidatePath(`/k/${list.share_token}`);
 }
 
 export async function deleteItem(fd: FormData) {
