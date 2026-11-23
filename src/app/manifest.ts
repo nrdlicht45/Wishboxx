@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Wishboxx – die digitale Geburtstagskiste",
+    name: "Wishboxx – Alle Wünsche. Alle Feste.",
     short_name: "Wishboxx",
     description: "Wunschlisten für Kinder & Familien: KI-Ideen, Reservieren ohne Account, Gruppengeschenke.",
     id: "/",

@@ -6,8 +6,8 @@ import { Icon, IconBubble } from "@/components/Icon";
 const FEATURES = [
   {
     icon: "gift",
-    title: "Die Geburtstagskiste – digital",
-    text: "Wie die Kiste im Spielwarenladen, nur ohne Anfahrt: Das Geburtstagskind wählt aus, Gäste suchen sich ein Geschenk aus – online oder direkt im Laden um die Ecke.",
+    title: "Eine Boxx für jedes Fest",
+    text: "Geburtstag, Weihnachten, Ostern, Einschulung: Wünsche sammeln, Gäste suchen sich etwas aus – online oder im Laden um die Ecke. Wie die Geschenkekiste im Spielwarenladen, nur ohne Anfahrt.",
   },
   {
     icon: "wallet",
@@ -53,28 +53,28 @@ export default async function Home() {
       <section className="flex flex-col items-center gap-5 py-8 text-center">
         <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold"
           style={{ background: "color-mix(in srgb, var(--card) 70%, transparent)" }}>
-          <Icon name="heart" size={15} /> Für Mamas, Papas & alle, die Feste organisieren
+          <Icon name="heart" size={15} /> Geburtstag · Weihnachten · Ostern · Einschulung
         </span>
         <h1 className="max-w-3xl text-4xl leading-tight sm:text-6xl">
-          Wir helfen dir, <span className="g">jedes Fest</span> entspannt zu organisieren.
+          Alle Wünsche. Alle Feste. <span className="g">Kopf frei.</span>
         </h1>
         <p className="muted max-w-2xl text-lg">
-          Die Geburtstagskiste fürs Handy: Wünsche sammeln, Ideen von der KI holen, Link in die Elterngruppe – und nie
-          wieder drei gleiche Puzzles auf dem Gabentisch.
+          Wishboxx merkt sich, was sich deine Kinder wünschen, schlägt Passendes vor, teilt die Liste mit allen Gästen und
+          erinnert sie ans Kaufen – damit du nicht an alles denken musst.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
-          <Link href="/start" className="btn text-lg">Boxx packen – in 60 Sekunden</Link>
+          <Link href="/start" className="btn text-lg">Erste Boxx packen – in 60 Sekunden</Link>
           <Link href="/login" className="btn-ghost text-lg">Anmelden</Link>
         </div>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-medium">
-          <span className="inline-flex items-center gap-2"><span className="dot" />Gäste ohne Anmeldung</span>
-          <span className="inline-flex items-center gap-2"><span className="dot" />KI-Geschenkideen</span>
-          <span className="inline-flex items-center gap-2"><span className="dot" />Erinnerungen inklusive</span>
+          <span className="inline-flex items-center gap-2"><span className="dot" />ohne Konto starten</span>
+          <span className="inline-flex items-center gap-2"><span className="dot" />Gäste brauchen keine App</span>
+          <span className="inline-flex items-center gap-2"><span className="dot" />nie wieder doppelte Geschenke</span>
         </div>
       </section>
 
       <section className="space-y-6">
-        <h2 className="text-center text-3xl">Wir kennen den <span className="g">Geschenke-Stress</span>.</h2>
+        <h2 className="text-center text-3xl">Du denkst an alles. <span className="g">Wishboxx denkt mit.</span></h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => (
             <div key={f.title} className="card space-y-2">

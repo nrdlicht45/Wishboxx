@@ -1,7 +1,10 @@
 "use client";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { quickStart } from "@/app/actions";
+import Link from "next/link";
+import { useRef } from "react";
+import { quickStart, type QuickStartState } from "@/app/actions";
+import { LoginLinkForm } from "./LoginLinkForm";
 import { Icon } from "./Icon";
 
 const OCCASIONS = [
@@ -48,7 +51,9 @@ export interface KnownChild {
 }
 
 export function QuickStart({ known = [] }: { known?: KnownChild[] }) {
-  const [state, action] = useActionState(quickStart, undefined);
+  const [state, action] = useActionState<QuickStartState | undefined, FormData>(quickStart, undefined);
+  const [force, setForce] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const [step, setStep] = useState(0);
   const [childId, setChildId] = useState<number | null>(null);
   const [name, setName] = useState("");
@@ -75,7 +80,9 @@ export function QuickStart({ known = [] }: { known?: KnownChild[] }) {
   const canNext = step === 0 ? name.trim().length > 0 : true;
 
   return (
-    <form action={action} className="mx-auto max-w-xl space-y-6">
+    <>
+    <form ref={formRef} action={action} className="mx-auto max-w-xl space-y-6">
+      {force && <input type="hidden" name="force" value="1" />}
       <input type="hidden" name="name" value={name} />
       <input type="hidden" name="recipient_id" value={childId ?? ""} />
       <input type="hidden" name="age" value={age} />
@@ -171,6 +178,22 @@ export function QuickStart({ known = [] }: { known?: KnownChild[] }) {
       )}
 
       {state?.error && <p className="font-semibold" style={{ color: "var(--pink-ink)" }}>{state.error}</p>}
+      {state?.duplicate && !force && (
+        <div className="card space-y-3" role="alert">
+          <p className="display text-lg">Gibt es schon: „{state.duplicate.title}“</p>
+          <p className="muted text-sm">
+            Für {name} gibt es bereits eine Boxx zu diesem Anlass{state.duplicate.date ? ` (${new Date(state.duplicate.date).toLocaleDateString("de-DE")})` : ""}.
+            Neue Wünsche kannst du dort einfach ergänzen.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/lists/${state.duplicate.id}`} className="btn">Diese Boxx öffnen</Link>
+            <button type="button" className="btn-ghost"
+              onClick={() => { setForce(true); setTimeout(() => formRef.current?.requestSubmit(), 0); }}>
+              Trotzdem neue anlegen
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-3">
         {step > 0 && <button type="button" className="btn-ghost" onClick={() => setStep(step - 1)}>Zurück</button>}
@@ -182,5 +205,13 @@ export function QuickStart({ known = [] }: { known?: KnownChild[] }) {
       </div>
       <p className="muted text-center text-xs">Kein Konto nötig. Die KI packt dir passende Ideen direkt in die Boxx – du wählst nur noch aus.</p>
     </form>
+    {state?.needsLogin && (
+      <div className="card mx-auto mt-6 max-w-xl space-y-3" role="alert">
+        <p className="display text-lg">Für weitere Boxen: kurz sichern</p>
+        <p className="muted text-sm">Deine erste Boxx ist ohne Konto gepackt. Für mehrere Boxen (z.B. Geschwister, Weihnachten) brauchst du nur deine E-Mail – kein Passwort.</p>
+        <LoginLinkForm withName next="/start" cta="Sichern und weiter" />
+      </div>
+    )}
+    </>
   );
 }

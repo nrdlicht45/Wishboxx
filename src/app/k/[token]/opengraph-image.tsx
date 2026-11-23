@@ -16,7 +16,7 @@ export default async function OgImage({ params }: { params: Promise<{ token: str
   const title = list?.title ?? "Wishboxx";
   const sub = list
     ? [OCCASIONS[list.occasion], list.event_date ? dateDe(list.event_date) : null].filter(Boolean).join(" · ")
-    : "Die digitale Geburtstagskiste";
+    : "Alle Wünsche. Alle Feste. Kopf frei.";
 
   return new ImageResponse(
     (

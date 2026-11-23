@@ -1,4 +1,4 @@
-# 🎁 Wishboxx – die digitale Geburtstagskiste
+# 🎁 Wishboxx – Alle Wünsche. Alle Feste. Kopf frei.
 
 Wunschlisten-App für Familien mit Kindern: Das Geburtstagskind „packt“ seine Kiste, Gäste suchen
 sich per Link ein Geschenk aus und reservieren es – ohne Account. Dazu KI-Geschenkideen, die nach

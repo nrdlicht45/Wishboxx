@@ -592,7 +592,25 @@ function defaultTitle(name: string, occasion: string, age: number | null): strin
 }
 
 /** Drei Fragen → Gast-Konto, Kinderprofil, Boxx, KI füllt sie direkt mit Ideen. */
-export async function quickStart(_: unknown, fd: FormData): Promise<{ error?: string }> {
+export type QuickStartState = {
+  error?: string;
+  needsLogin?: boolean;
+  duplicate?: { id: number; title: string; date: string | null };
+};
+
+/** Ähnliche Boxx: gleiches Kind (Name), gleicher Anlass, gleiches Jahr (bzw. beide ohne Datum), nicht archiviert. */
+function findSimilarBox(userId: number, childName: string, occasion: string, eventDate: string | null) {
+  const rows = getDb()
+    .prepare(
+      `SELECT l.id, l.title, l.event_date FROM lists l JOIN recipients r ON r.id = l.recipient_id
+       WHERE l.user_id = ? AND l.archived = 0 AND lower(r.name) = lower(?) AND l.occasion = ?`,
+    )
+    .all(userId, childName, occasion) as { id: number; title: string; event_date: string | null }[];
+  const year = eventDate?.slice(0, 4) ?? null;
+  return rows.find((r) => (r.event_date?.slice(0, 4) ?? null) === year || (!year && !eventIsOver({ event_date: r.event_date })));
+}
+
+export async function quickStart(_: unknown, fd: FormData): Promise<QuickStartState> {
   const name = str(fd, "name", 60);
   if (!name) return { error: "Wie heißt das Kind?" };
   const age = num(fd, "age");
@@ -601,8 +619,19 @@ export async function quickStart(_: unknown, fd: FormData): Promise<{ error?: st
   const interests = str(fd, "interests", 500);
   const avoid = str(fd, "avoid", 300);
   const [budgetMin, budgetMax] = BUDGETS[str(fd, "budget")] ?? [null, null];
-  const user = await getOrCreateGuest(str(fd, "parent", 60));
+  const current = await getCurrentUser();
   const db = getDb();
+  if (current) {
+    // Mehrere Boxen nur mit gesichertem Konto
+    const count = (db.prepare("SELECT COUNT(*) AS c FROM lists WHERE user_id = ?").get(current.id) as { c: number }).c;
+    if (current.is_guest && count > 0) return { needsLogin: true };
+    // Nicht doppelt anlegen
+    if (!fd.get("force")) {
+      const dup = findSimilarBox(current.id, name, occasion, eventDate);
+      if (dup) return { duplicate: { id: dup.id, title: dup.title, date: dup.event_date } };
+    }
+  }
+  const user = await getOrCreateGuest(str(fd, "parent", 60));
 
   // Vorhandenes Kind wiederverwenden (Auswahl im Schnellstart oder gleicher Name),
   // damit „hat schon“ und Merkzettel erhalten bleiben
@@ -732,6 +761,15 @@ export async function packAgain(fd: FormData) {
   const user = await requireUser();
   const old = getList(Number(fd.get("id")), user.id);
   if (!old) return;
+  if (user.is_guest) redirect(`/lists/${old.id}?sichern=1`); // weitere Boxen nur mit Konto
+  // Gibt es die Boxx fürs Folgejahr schon? Dann dorthin statt doppelt anlegen
+  const nextDate = plusOneYear(old.event_date);
+  if (nextDate) {
+    const exists = getDb()
+      .prepare("SELECT id FROM lists WHERE user_id = ? AND archived = 0 AND occasion = ? AND recipient_id IS ? AND substr(event_date, 1, 4) = ?")
+      .get(user.id, old.occasion, old.recipient_id, nextDate.slice(0, 4)) as { id: number } | undefined;
+    if (exists) redirect(`/lists/${exists.id}?schon=1`);
+  }
   const rec = old.recipient_id ? getRecipient(old.recipient_id, user.id) : undefined;
   const items = getItemsWithStatus(old.id);
   const received = items.filter((i) => i.reservations.length > 0).map((i) => i.title);

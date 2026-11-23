@@ -40,9 +40,9 @@ export default async function ListPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ neu?: string }>;
+  searchParams: Promise<{ neu?: string; sichern?: string; schon?: string }>;
 }) {
-  const { neu } = await searchParams;
+  const { neu, sichern, schon } = await searchParams;
   const user = await requireUser();
   const list = getList(Number((await params).id), user.id);
   if (!list) notFound();
@@ -88,6 +88,12 @@ export default async function ListPage({
         </div>
       </div>
 
+      {schon && (
+        <p className="chip" style={{ whiteSpace: "normal" }}>Die Boxx fürs nächste Mal gibt es schon – hier ist sie. Ergänze einfach neue Wünsche.</p>
+      )}
+      {sichern && user.is_guest ? (
+        <p className="chip chip-pink" style={{ whiteSpace: "normal" }}>Für weitere Boxen sichere zuerst diese Boxx – unten mit deiner E-Mail.</p>
+      ) : null}
       {neu && (
         <div className="banner space-y-1">
           <p className="display text-xl">{items.length} Wünsche sind schon eingepackt.</p>

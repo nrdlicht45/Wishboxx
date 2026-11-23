@@ -8,7 +8,7 @@ import { TabBar } from "@/components/TabBar";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL || "http://localhost:3000"),
-  title: "Wishboxx – die digitale Geburtstagskiste",
+  title: "Wishboxx – Alle Wünsche. Alle Feste. Kopf frei.",
   description:
     "Wunschlisten für Kinder & Familien: KI-Geschenkideen, Reservieren ohne Account, Gruppengeschenke und Danke-Liste.",
   applicationName: "Wishboxx",
