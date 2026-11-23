@@ -151,3 +151,9 @@ test("Unbekanntes Format liefert null", () => {
   assert.equal(detectProviderFromExample("https://www.example.com/produkt/1"), null);
   assert.equal(detectProviderFromExample("kein link"), null);
 });
+
+test("Stichwortsuche im Katalog liefert nur passende Treffer", () => {
+  const ideas = catalogSuggestions({ age: 6, gender: "none", interests: ["Pferde"], avoid: [], owned: [], budgetMax: null, exclude: [], strict: true });
+  assert.ok(ideas.length >= 2);
+  assert.ok(ideas.every((i) => /pferd|schleich|reiter/i.test(i.title + i.description)));
+});

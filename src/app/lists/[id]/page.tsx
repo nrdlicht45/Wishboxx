@@ -18,13 +18,13 @@ import { appUrl, dateDe, euro } from "@/lib/format";
 import { ShareBox } from "@/components/ShareBox";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PhotoWish } from "@/components/PhotoWish";
+import { SmartAdd } from "@/components/SmartAdd";
 import { LoginLinkForm } from "@/components/LoginLinkForm";
 import {
   addMemo,
   archiveList,
   packAgain,
   releaseReservation,
-  smartAdd,
   copyOpenItems,
   deleteItem,
   markReceivedAsOwned,
@@ -62,6 +62,9 @@ export default async function ListPage({
 
   return (
     <div className="space-y-6">
+      <Link href="/dashboard" className="muted inline-flex min-h-11 items-center gap-1 text-sm font-semibold">
+        <span aria-hidden>←</span> Meine Boxx – alle Boxen
+      </Link>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl">{list.title}</h1>
@@ -248,40 +251,7 @@ export default async function ListPage({
 
       <section className="card space-y-3" aria-label="Wunsch hinzufügen">
         <h2 className="text-lg">Wunsch hinzufügen</h2>
-        <form action={smartAdd} className="space-y-3">
-          <input type="hidden" name="list_id" value={list.id} />
-          <div className="flex gap-2">
-            <label htmlFor="q" className="sr-only">Link oder Stichwort</label>
-            <input className="input flex-1" id="q" name="q" required autoComplete="off" enterKeyHint="send"
-              placeholder="Link einfügen oder Stichwort, z.B. „Lego Pferd“" />
-            <SubmitButton pendingText="…" className="btn shrink-0 !px-4"><Icon name="plus" /><span className="sr-only">Hinzufügen</span></SubmitButton>
-          </div>
-          <details className="text-sm">
-            <summary className="muted cursor-pointer">Mehr Optionen (Preis, Laden, Gruppengeschenk …)</summary>
-            <div className="mt-3 grid gap-3 sm:grid-cols-4">
-              <div>
-                <label className="label" htmlFor="price">Preis €</label>
-                <input className="input" id="price" name="price" inputMode="decimal" />
-              </div>
-              <div>
-                <label className="label" htmlFor="quantity">Anzahl</label>
-                <input className="input" id="quantity" name="quantity" type="number" min={1} max={20} defaultValue={1} />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="label" htmlFor="priority">Priorität</label>
-                <select className="input" id="priority" name="priority" defaultValue={2}>
-                  {Object.entries(PRIO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-              </div>
-              <label className="flex items-center gap-2 sm:col-span-2">
-                <input type="checkbox" name="source" value="store" /> Liegt im Laden {list.shop_name && `(${list.shop_name})`}
-              </label>
-              <label className="flex items-center gap-2 sm:col-span-2">
-                <input type="checkbox" name="is_group_gift" /> Gruppengeschenk (mehrere legen zusammen)
-              </label>
-            </div>
-          </details>
-        </form>
+        <SmartAdd listId={list.id} shopName={list.shop_name} />
         <div className="flex flex-wrap items-start gap-2">
           <PhotoWish listId={list.id} compact />
           <Link href={`/lists/${list.id}/ideas`} className="btn-ghost"><Icon name="sparkle" /> Mehr Ideen</Link>

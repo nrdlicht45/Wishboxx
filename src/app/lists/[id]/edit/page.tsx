@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { getList, getRecipients } from "@/lib/repo";
@@ -10,6 +11,9 @@ export default async function EditList({ params }: { params: Promise<{ id: strin
   if (!list) notFound();
   return (
     <div className="space-y-4">
+      <Link href={`/lists/${list.id}`} className="muted inline-flex min-h-11 items-center gap-1 text-sm font-semibold">
+        <span aria-hidden>←</span> Zurück zur Boxx
+      </Link>
       <h1 className="text-2xl">Boxx bearbeiten</h1>
       <ListForm list={list} recipients={getRecipients(user.id)} action={updateList} />
       <form action={deleteList}>

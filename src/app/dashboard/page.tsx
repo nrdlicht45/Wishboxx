@@ -33,7 +33,7 @@ export default async function Dashboard() {
     .sort((a, b) => a.event_date!.localeCompare(b.event_date!));
   const next = upcoming[0] ?? active[0];
   const nextStats = next ? getListStats(next.id) : null;
-  const others = active.filter((l) => l.id !== next?.id);
+  const sortedActive = [...active].sort((x, y) => (x.event_date ?? "9999").localeCompare(y.event_date ?? "9999"));
 
   const done: { icon: string; text: string }[] = [];
   if (next && nextStats) {
@@ -100,22 +100,34 @@ export default async function Dashboard() {
         </div>
       )}
 
-      {others.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-xl">Weitere Boxen</h2>
+      {active.length > 0 && (
+        <section className="space-y-3" aria-labelledby="alle-boxen">
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="alle-boxen" className="text-xl">Alle Boxen</h2>
+            <Link href="/start" className="btn-ghost"><Icon name="plus" /> Neue Boxx</Link>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {others.map((l) => (
-              <Link key={l.id} href={`/lists/${l.id}`} className="card flex items-center gap-3">
-                <DateTile date={l.event_date} />
-                <div className="min-w-0">
-                  <p className="display truncate">{l.title}</p>
-                  <p className="text-sm muted">
-                    {OCCASIONS[l.occasion]}
-                    {l.recipient_name && ` · ${l.recipient_name}`} · {l.item_count} Wünsche
-                  </p>
-                </div>
-              </Link>
-            ))}
+            {sortedActive.map((l) => {
+              const d = l.event_date ? daysUntil(l.event_date) : null;
+              return (
+                <Link key={l.id} href={`/lists/${l.id}`} className="card flex items-center gap-3"
+                  aria-current={l.id === next?.id ? "true" : undefined}>
+                  <DateTile date={l.event_date} />
+                  <div className="min-w-0">
+                    <p className="display truncate">{l.title}</p>
+                    <p className="text-sm muted">
+                      {l.recipient_name ? `${l.recipient_name} · ` : ""}{l.item_count} Wünsche
+                    </p>
+                    <p className="mt-1">
+                      {d == null ? <span className="chip">ohne Datum</span>
+                        : d < 0 ? <span className="chip chip-pink">vorbei – Danke-Liste & nächstes Jahr</span>
+                        : d > 180 ? <span className="chip">{new Date(l.event_date!).getFullYear()} · in {Math.round(d / 30)} Monaten</span>
+                        : <span className="chip chip-ok">in {d} Tagen</span>}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}
@@ -151,14 +163,17 @@ export default async function Dashboard() {
       </section>
 
       {archived.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-lg muted">Archiv</h2>
-          <ul className="space-y-1 text-sm">
+        <details className="card">
+          <summary className="cursor-pointer font-semibold">Archiv ({archived.length})</summary>
+          <ul className="mt-3 space-y-2 text-sm">
             {archived.map((l) => (
-              <li key={l.id}><Link className="underline" href={`/lists/${l.id}`}>{l.title}</Link></li>
+              <li key={l.id}>
+                <Link className="underline" href={`/lists/${l.id}`}>{l.title}</Link>
+                <span className="muted">{l.recipient_name ? ` · ${l.recipient_name}` : ""}{l.event_date ? ` · ${new Date(l.event_date).getFullYear()}` : ""}</span>
+              </li>
             ))}
           </ul>
-        </section>
+        </details>
       )}
     </div>
   );

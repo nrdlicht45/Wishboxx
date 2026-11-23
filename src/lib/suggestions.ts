@@ -31,6 +31,8 @@ export interface SuggestionInput {
   budgetMax: number | null;
   existingItems: string[];
   extraWish?: string;
+  /** Stichwortsuche: im Katalog nur passende Treffer zeigen */
+  strict?: boolean;
 }
 
 export interface SuggestionResult {
@@ -80,6 +82,7 @@ export async function suggestGifts(input: SuggestionInput, count = 8): Promise<S
       budgetMax: input.budgetMax,
       exclude: input.existingItems,
       count,
+      strict: input.strict,
     }),
   });
 

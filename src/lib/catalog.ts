@@ -42,6 +42,11 @@ const C: CatalogEntry[] = [
   { title: "Spielfahrzeug-Set", description: "Robuste Fahrzeuge für Sandkasten & Kinderzimmer", reason: "Für kleine Fahrzeugfans", price_estimate: 15, category: "Spielzeug", search_query: "Spielzeugautos Set Kinder", minAge: 2, maxAge: 7, tags: ["autos", "fahrzeuge", "baustelle"] },
   { title: "Schleich-Tierfigur", description: "Detailreiche Tier- oder Pferdefigur", reason: "Sammeln & Rollenspiel", price_estimate: 10, category: "Spielzeug", search_query: "Schleich Tierfigur", minAge: 3, maxAge: 10, tags: ["tiere", "pferde", "dinos", "rollenspiel"] },
   { title: "Dino-Ausgrabungsset", description: "Dinosaurier-Skelett freilegen", reason: "Für Dino-Fans", price_estimate: 12, category: "Forschen", search_query: "Dino Ausgrabungsset", minAge: 5, maxAge: 11, tags: ["dinos", "forschen"] },
+  { title: "Reiterhof-Spielset", description: "Stall mit Pferden und Zubehör", reason: "Für Pferdefans zum Nachspielen", price_estimate: 25, category: "Spielzeug", search_query: "Reiterhof Spielset", minAge: 4, maxAge: 10, tags: ["pferde", "tiere", "rollenspiel"] },
+  { title: "Pferde-Stickerbuch", description: "Stickerheft mit Pferdemotiven", reason: "Kleines Budget, große Freude", price_estimate: 8, category: "Basteln", search_query: "Pferde Stickerbuch", minAge: 4, maxAge: 9, tags: ["pferde", "basteln"] },
+  { title: "Erstlese-Pferdebuch", description: "Pferdegeschichten für Leseanfänger", reason: "Lesen üben mit Lieblingsthema", price_estimate: 10, category: "Buch", search_query: "Erstleser Pferdegeschichten", minAge: 6, maxAge: 9, tags: ["pferde", "lesen", "bücher"] },
+  { title: "Dino-Sachbuch mit Klappen", description: "Wissen zum Aufklappen", reason: "Für kleine Dino-Experten", price_estimate: 13, category: "Buch", search_query: "Dinosaurier Klappenbuch", minAge: 4, maxAge: 8, tags: ["dinos", "lesen", "bücher", "forschen"] },
+  { title: "Kinder-Bastelset Filz", description: "Filzfiguren nähen und kleben", reason: "Kreativ ohne Chaos", price_estimate: 12, category: "Basteln", search_query: "Filz Bastelset Kinder", minAge: 5, maxAge: 10, tags: ["basteln", "kreativ"] },
   { title: "Gutschein fürs Erlebnis", description: "Kino, Kletterhalle oder Zoo", reason: "Zeit statt Zeug", price_estimate: 20, category: "Erlebnis", search_query: "Erlebnisgutschein Kinder", minAge: 4, maxAge: 16, tags: ["erlebnis", "sport", "tiere"] },
 ];
 
@@ -56,6 +61,8 @@ export function catalogSuggestions(opts: {
   budgetMax: number | null;
   exclude: string[];
   count?: number;
+  /** nur Einträge, die zu den Interessen passen (für gezielte Stichwortsuche) */
+  strict?: boolean;
 }): GiftIdea[] {
   const age = opts.age ?? 5;
   const interests = opts.interests.map(norm);
@@ -71,6 +78,7 @@ export function catalogSuggestions(opts: {
         // Treffer im Titel zählen doppelt (einfaches Stemming: "Dinos" -> "dino")
         2 * interests.filter((i) => i.length > 2 && norm(e.title).includes(i.replace(/(s|en|e|n)$/, ""))).length,
     }))
+    .filter((x) => !opts.strict || x.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, opts.count ?? 8)
     .map(({ e }) => ({

@@ -856,3 +856,40 @@ export async function suggestProvider(_: unknown, fd: FormData): Promise<Provide
       link_template: ai.link_template, search_url_template: ai.search_url_template },
   };
 }
+
+// ---------------- KI-Vorschläge direkt beim Hinzufügen ----------------
+export type QueryIdeasState = { q?: string; ideas?: IdeaWithLink[]; note?: string; error?: string };
+
+/** Stichwort oder Frage („etwas mit Pferden für 15 €“) → 4 passende Vorschläge für genau diese Boxx. */
+export async function ideasForQuery(_: unknown, fd: FormData): Promise<QueryIdeasState> {
+  const user = await requireUser();
+  const list = getList(Number(fd.get("list_id")), user.id);
+  if (!list) return { error: "Boxx nicht gefunden." };
+  const q = str(fd, "q", 300);
+  if (!q) return { error: "Tippe ein Stichwort oder eine Frage ein, z.B. „etwas mit Pferden“." };
+  const rec = list.recipient_id ? getRecipient(list.recipient_id, user.id) : undefined;
+  const age = recipientAge(rec);
+  const result = await suggestGifts(
+    {
+      age: age != null && list.occasion === "birthday" && list.event_date && !eventIsOver(list) ? age + 1 : age,
+      gender: rec?.gender ?? "none",
+      interests: [q],
+      avoid: csv(rec?.avoid ?? ""),
+      owned: csv(rec?.owned ?? ""),
+      sizes: rec?.sizes ?? "",
+      occasion: list.occasion,
+      budgetMin: list.budget_min,
+      budgetMax: list.budget_max,
+      existingItems: getItemsWithStatus(list.id).map((i) => i.title),
+      extraWish: `Die Eltern suchen gezielt: „${q}“. Schlage 4 konkrete, unterschiedliche Produkte genau dazu vor.${rec?.interests ? ` Weitere Interessen des Kindes: ${rec.interests}.` : ""}`,
+      strict: true,
+    },
+    4,
+  );
+  const providers = getActiveProviders();
+  return {
+    q,
+    note: result.source === "catalog" ? result.note : undefined,
+    ideas: result.ideas.map((i) => ({ ...i, url: buildSearchUrl(i.search_query, providers) })),
+  };
+}
