@@ -116,6 +116,36 @@ CREATE TABLE IF NOT EXISTS memos (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Rückmeldungen der Gäste zur Feier (unabhängig von Reservierungen)
+CREATE TABLE IF NOT EXISTS rsvps (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  list_id INTEGER NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+  token TEXT NOT NULL UNIQUE,
+  guest_name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'yes',
+  kids INTEGER,
+  other_gift INTEGER NOT NULL DEFAULT 0,
+  message TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Push-Abos der Boxx-Inhaber (Web Push)
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Einstellungen, die die App selbst erzeugt (z.B. Push-Schlüssel)
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 -- Einmal-Links für die Anmeldung ohne Passwort
 CREATE TABLE IF NOT EXISTS login_tokens (
   token_hash TEXT PRIMARY KEY,
@@ -178,6 +208,11 @@ const COLUMN_MIGRATIONS: [table: string, column: string, ddl: string][] = [
   ["users", "is_guest", "INTEGER NOT NULL DEFAULT 0"],
   // Alter ohne Geburtsdatum (Schnellstart fragt nur „Wie alt?“)
   ["recipients", "age_hint", "INTEGER"],
+  // Feier-Details und Gästeliste
+  ["lists", "event_time", "TEXT NOT NULL DEFAULT ''"],
+  ["lists", "location", "TEXT NOT NULL DEFAULT ''"],
+  ["lists", "invitees", "TEXT NOT NULL DEFAULT ''"],
+  ["lists", "owner_reminder_stage", "INTEGER NOT NULL DEFAULT 0"],
 ];
 
 function migrate(db: Database.Database) {

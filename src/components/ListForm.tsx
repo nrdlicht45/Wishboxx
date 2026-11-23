@@ -41,6 +41,14 @@ export function ListForm({
           <label className="label" htmlFor="event_date">Datum der Feier</label>
           <input className="input" id="event_date" name="event_date" type="date" defaultValue={list?.event_date ?? ""} />
         </div>
+        <div>
+          <label className="label" htmlFor="event_time">Uhrzeit (optional)</label>
+          <input className="input" id="event_time" name="event_time" type="time" defaultValue={list?.event_time ?? ""} />
+        </div>
+        <div>
+          <label className="label" htmlFor="location">Wo wird gefeiert? (optional)</label>
+          <input className="input" id="location" name="location" placeholder="z.B. bei uns, Gartenstr. 3" defaultValue={list?.location ?? ""} />
+        </div>
       </div>
       <div>
         <label className="label" htmlFor="description">Nachricht an die Gäste</label>

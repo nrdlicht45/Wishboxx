@@ -2,6 +2,54 @@ import { getDb } from "@/lib/db";
 import { sendMail } from "@/lib/mailer";
 import { reminderDue, daysUntil } from "@/lib/reminders";
 import { appUrl, dateDe } from "@/lib/format";
+import { pushToUser, hasPush } from "@/lib/push";
+import { ownerSummary } from "@/lib/summary";
+
+/** Erinnerung an die Boxx-Inhaberin: 14, 7 und 2 Tage vor dem Fest. */
+const OWNER_STAGES = [
+  { stage: 1, daysBefore: 14 },
+  { stage: 2, daysBefore: 7 },
+  { stage: 3, daysBefore: 2 },
+];
+
+async function remindOwners(): Promise<number> {
+  const db = getDb();
+  const lists = db
+    .prepare(
+      `SELECT l.id, l.title, l.event_date, l.owner_reminder_stage, l.user_id, u.email, u.is_guest
+       FROM lists l JOIN users u ON u.id = l.user_id
+       WHERE l.archived = 0 AND l.event_date IS NOT NULL AND l.event_date >= date('now')`,
+    )
+    .all() as { id: number; title: string; event_date: string; owner_reminder_stage: number; user_id: number; email: string; is_guest: number }[];
+  let sent = 0;
+  for (const l of lists) {
+    const days = daysUntil(l.event_date);
+    let due = 0;
+    for (const st of OWNER_STAGES) if (days <= st.daysBefore && l.owner_reminder_stage < st.stage) due = st.stage;
+    if (!due) continue;
+    const when = days === 0 ? "heute" : days === 1 ? "morgen" : `in ${days} Tagen`;
+    const summary = ownerSummary(l.id);
+    const pushed = await pushToUser(l.user_id, {
+      title: `${l.title} ist ${when}`,
+      body: `${summary}. Jetzt kurz prüfen?`,
+      url: `/lists/${l.id}`,
+      tag: `owner-${l.id}`,
+    });
+    let ok = pushed > 0;
+    if (!ok && !hasPush(l.user_id) && !l.is_guest) {
+      ok = await sendMail(
+        l.email,
+        `${l.title} ist ${when} – kurzer Stand`,
+        `Hallo!\n\n„${l.title}“ ist ${when} (${dateDe(l.event_date)}).\nStand: ${summary}.\n\nAlles im Blick: ${appUrl()}/lists/${l.id}\n\nDein Wishboxx-Team`,
+      );
+    }
+    if (ok) {
+      db.prepare("UPDATE lists SET owner_reminder_stage = ? WHERE id = ?").run(due, l.id);
+      sent++;
+    }
+  }
+  return sent;
+}
 
 /**
  * Täglich aufrufen (Railway Cron, GitHub Actions o.ä.):
@@ -52,5 +100,6 @@ export async function GET(req: Request) {
       sent++;
     }
   }
-  return Response.json({ checked: rows.length, sent });
+  const owners = await remindOwners();
+  return Response.json({ checked: rows.length, sent, owners });
 }

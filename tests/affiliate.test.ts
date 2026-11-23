@@ -157,3 +157,11 @@ test("Stichwortsuche im Katalog liefert nur passende Treffer", () => {
   assert.ok(ideas.length >= 2);
   assert.ok(ideas.every((i) => /pferd|schleich|reiter/i.test(i.title + i.description)));
 });
+
+import { matchInvitees } from "../src/lib/guests.ts";
+test("Gästeliste wird mit Rückmeldungen abgeglichen", () => {
+  const r = matchInvitees("Ben\nMia\nFamilie Müller", ["Ben & Mama Julia", "Müllers"]);
+  assert.deepEqual(r.map((x) => x.answered), [true, false, true]);
+  const r2 = matchInvitees("Ben, Mia", ["mia"]);
+  assert.deepEqual(r2.map((x) => x.answered), [false, true]);
+});

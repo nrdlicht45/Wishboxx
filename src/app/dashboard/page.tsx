@@ -4,6 +4,9 @@ import { recipientAge, eventIsOver, getListStats, getLists, getMemoCounts, getRe
 import { daysUntil } from "@/lib/reminders";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { LoginLinkForm } from "@/components/LoginLinkForm";
+import { PushToggle } from "@/components/PushToggle";
+import { vapidPublicKey } from "@/lib/push";
+import { getRsvps } from "@/lib/repo";
 import { Icon, IconBubble } from "@/components/Icon";
 
 const MONTHS = ["JAN", "FEB", "MÄR", "APR", "MAI", "JUN", "JUL", "AUG", "SEP", "OKT", "NOV", "DEZ"];
@@ -41,6 +44,9 @@ export default async function Dashboard() {
       if (nextStats.purchased) done.push({ icon: "check", text: `${nextStats.purchased} von ${nextStats.reservations} reservierten Geschenken sind schon gekauft` });
       for (const g of nextStats.groups.filter((x) => x.pct > 0)) done.push({ icon: "users", text: `Gruppengeschenk „${g.title}“ zu ${g.pct} % finanziert` });
     }
+    const rs = getRsvps(next.id);
+    const yes = rs.filter((r) => r.status === "yes").length;
+    if (rs.length) done.push({ icon: "users", text: `${yes} ${yes === 1 ? "Zusage" : "Zusagen"}${rs.length - yes ? `, ${rs.length - yes} ${rs.length - yes === 1 ? "Absage" : "Absagen"}` : ""} zur Feier` });
     if (nextStats.reminded) done.push({ icon: "bell", text: `${nextStats.reminded} ${nextStats.reminded === 1 ? "Gast wurde" : "Gäste wurden"} ans Kaufen erinnert` });
     if (!done.length) done.push({ icon: "share", text: "Teile die Boxx – Reservierungen und Erinnerungen laufen dann automatisch" });
   }
@@ -64,6 +70,7 @@ export default async function Dashboard() {
       ) : null}
 
       <InstallPrompt />
+      {next && <PushToggle publicKey={vapidPublicKey()} />}
 
       {!next ? (
         <div className="card space-y-3">

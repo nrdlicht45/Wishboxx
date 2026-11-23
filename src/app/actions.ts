@@ -38,8 +38,10 @@ import {
   plusOneYear,
   type Item,
   type Recipient,
+  getRsvps,
 } from "@/lib/repo";
 import { mailConfigured, sendMail } from "@/lib/mailer";
+import { pushToUser } from "@/lib/push";
 import { recognizeProduct, type RecognizedProduct } from "@/lib/vision";
 import { MAX_UPLOAD_BYTES, saveUpload, sniffImage, UPLOAD_PATH_RE } from "@/lib/uploads";
 import { appUrl, dateDe } from "@/lib/format";
@@ -157,6 +159,8 @@ function listData(fd: FormData) {
     shop_name: str(fd, "shop_name", 120),
     shop_address: str(fd, "shop_address", 240),
     payment_hint: str(fd, "payment_hint", 240),
+    event_time: str(fd, "event_time", 5),
+    location: str(fd, "location", 200),
     recipient_id: Number(fd.get("recipient_id") || 0) || null,
   };
 }
@@ -169,9 +173,9 @@ export async function createList(fd: FormData) {
   const info = getDb()
     .prepare(
       `INSERT INTO lists (user_id, recipient_id, title, occasion, event_date, description, share_token,
-        reveal_mode, budget_min, budget_max, shop_name, shop_address, payment_hint)
+        reveal_mode, budget_min, budget_max, shop_name, shop_address, payment_hint, event_time, location)
        VALUES (@user_id, @recipient_id, @title, @occasion, @event_date, @description, @share_token,
-        @reveal_mode, @budget_min, @budget_max, @shop_name, @shop_address, @payment_hint)`,
+        @reveal_mode, @budget_min, @budget_max, @shop_name, @shop_address, @payment_hint, @event_time, @location)`,
     )
     .run({ ...data, user_id: user.id, share_token: randomToken(9) });
   redirect(`/lists/${info.lastInsertRowid}`);
@@ -187,7 +191,8 @@ export async function updateList(fd: FormData) {
     .prepare(
       `UPDATE lists SET recipient_id=@recipient_id, title=@title, occasion=@occasion, event_date=@event_date,
        description=@description, reveal_mode=@reveal_mode, budget_min=@budget_min, budget_max=@budget_max,
-       shop_name=@shop_name, shop_address=@shop_address, payment_hint=@payment_hint WHERE id=@id`,
+       shop_name=@shop_name, shop_address=@shop_address, payment_hint=@payment_hint,
+       event_time=@event_time, location=@location WHERE id=@id`,
     )
     .run({ ...data, id });
   redirect(`/lists/${id}`);
@@ -450,6 +455,7 @@ export async function reserveItem(_: unknown, fd: FormData) {
     await rememberGuestToken(listToken, result.token);
     (await cookies()).set("wb_guest_name", guestName, { httpOnly: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 365, path: "/" });
     if (email) await sendReservationMail(result.token);
+    await notifyReservation(result.token);
     revalidatePath(`/k/${listToken}`);
     return { ok: true, token: result.token };
   }
@@ -930,4 +936,82 @@ export async function ideasForQuery(_: unknown, fd: FormData): Promise<QueryIdea
     note: result.source === "catalog" ? result.note : undefined,
     ideas: result.ideas.map((i) => ({ ...i, url: buildSearchUrl(i.search_query, providers) })),
   };
+}
+
+// ---------------- Push-Benachrichtigungen für Boxx-Inhaber ----------------
+export async function savePushSubscription(sub: { endpoint: string; keys: { p256dh: string; auth: string } }) {
+  const user = await requireUser();
+  if (!sub?.endpoint?.startsWith("https://") || !sub.keys?.p256dh || !sub.keys?.auth) return { ok: false };
+  getDb()
+    .prepare(
+      `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)
+       ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth`,
+    )
+    .run(user.id, sub.endpoint, sub.keys.p256dh, sub.keys.auth);
+  return { ok: true };
+}
+
+export async function removePushSubscription(endpoint: string) {
+  const user = await requireUser();
+  getDb().prepare("DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?").run(endpoint, user.id);
+  return { ok: true };
+}
+
+/** Sofort-Push an die Inhaberin bei neuer Reservierung – respektiert den Überraschungsmodus. */
+async function notifyReservation(token: string) {
+  const ctx = getReservationByToken(token);
+  if (!ctx) return;
+  const { reservation: r, item, list } = ctx;
+  if (list.reveal_mode === "surprise" && !eventIsOver(list)) return; // Inhaberin soll nichts erfahren
+  const who = list.reveal_mode === "full" ? r.guest_name : "Ein Gast";
+  const what = r.kind === "pledge" ? `beteiligt sich mit ${r.amount?.toFixed(2).replace(".", ",")} € an „${item.title}“` : `hat „${item.title}“ reserviert`;
+  await pushToUser(list.user_id, { title: list.title, body: `${who} ${what}.`, url: `/lists/${list.id}`, tag: `list-${list.id}` });
+}
+
+// ---------------- Gäste: Rückmeldung zur Feier ----------------
+export type RsvpState = { ok?: boolean; status?: string; error?: string };
+
+/** Zusage/Absage zur Feier, optional „wir schenken etwas anderes“ – ohne Konto, änderbar über Cookie. */
+export async function submitRsvp(_: unknown, fd: FormData): Promise<RsvpState> {
+  const listToken = str(fd, "list_token", 40);
+  const list = getListByToken(listToken);
+  if (!list) return { error: "Diese Einladung gibt es nicht mehr." };
+  const name = str(fd, "guest_name", 80);
+  if (!name) return { error: "Bitte gib an, wer antwortet (z.B. „Ben & Mama Julia“)." };
+  const status = str(fd, "status") === "no" ? "no" : "yes";
+  const kidsRaw = Number(fd.get("kids") || 0);
+  const kids = status === "yes" && kidsRaw > 0 ? Math.min(20, Math.round(kidsRaw)) : null;
+  const otherGift = fd.get("other_gift") ? 1 : 0;
+  const message = str(fd, "message", 300);
+  const jar = await cookies();
+  const key = `wb_r_${listToken}`;
+  const db = getDb();
+  const existing = jar.get(key)?.value;
+  const row = existing ? (db.prepare("SELECT id FROM rsvps WHERE token = ? AND list_id = ?").get(existing, list.id) as { id: number } | undefined) : undefined;
+  if (row) {
+    db.prepare("UPDATE rsvps SET guest_name=?, status=?, kids=?, other_gift=?, message=?, updated_at=datetime('now') WHERE id=?")
+      .run(name, status, kids, otherGift, message, row.id);
+  } else {
+    const token = randomToken(12);
+    db.prepare("INSERT INTO rsvps (list_id, token, guest_name, status, kids, other_gift, message) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .run(list.id, token, name, status, kids, otherGift, message);
+    jar.set(key, token, { httpOnly: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 365, path: "/" });
+  }
+  jar.set("wb_guest_name", name, { httpOnly: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 365, path: "/" });
+  const body =
+    status === "yes"
+      ? `${name} kommt${kids ? ` (${kids} ${kids === 1 ? "Kind" : "Kinder"})` : ""}${otherGift && list.reveal_mode !== "surprise" ? " und bringt etwas eigenes mit" : ""}.`
+      : `${name} kann leider nicht kommen.`;
+  await pushToUser(list.user_id, { title: `${list.title}: ${row ? "Rückmeldung geändert" : "neue Rückmeldung"}`, body, url: `/lists/${list.id}#gaeste`, tag: `rsvp-${list.id}` });
+  revalidatePath(`/k/${listToken}`);
+  revalidatePath(`/lists/${list.id}`);
+  return { ok: true, status };
+}
+
+export async function saveInvitees(fd: FormData) {
+  const user = await requireUser();
+  const listId = Number(fd.get("list_id"));
+  if (!getList(listId, user.id)) return;
+  getDb().prepare("UPDATE lists SET invitees = ? WHERE id = ? AND user_id = ?").run(str(fd, "invitees", 4000), listId, user.id);
+  revalidatePath(`/lists/${listId}`);
 }

@@ -35,6 +35,15 @@ Gäste brauchen weiterhin **keine** App – sie öffnen einfach den geteilten Li
 
 Neue Wünsche kommen über **ein einziges Feld**: Link einfügen, Stichwort tippen („Lego Pferd“) oder Foto machen.
 
+## Feier & Benachrichtigungen
+
+- **Zusagen zur Feier:** Gäste antworten über denselben Link mit „Wir kommen“ (Anzahl Kinder) oder „Leider nicht“ –
+  optional **„Wir schenken etwas anderes“**, ohne zu sagen was. Uhrzeit und Ort stehen in der Einladung.
+- **Gästeliste:** Eingeladene eintragen (ein Name pro Zeile) → sehen, wer noch nicht geantwortet hat, Erinnerung per WhatsApp
+- **Push-Nachrichten für die Inhaberin** (installierte App, auf dem iPhone ab Home-Bildschirm): sofort bei neuen
+  Reservierungen und Zusagen (Überraschungsmodus wird respektiert) und eine Erinnerung 14, 7 und 2 Tage vor dem Fest
+  mit dem Stand. Ohne Push-Abo kommt die Erinnerung per E-Mail. Die Push-Schlüssel erzeugt die App selbst.
+
 ## Wunsch-Gedächtnis pro Kind
 
 - **Merkzettel:** Bei jedem Wunsch „Fortsetzung merken“ (schlägt z.B. „Band 2“ vor) oder freie Ideen im Kinderprofil

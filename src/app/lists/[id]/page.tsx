@@ -13,6 +13,8 @@ import {
   nextYearTitle,
   OCCASIONS,
   plusOneYear,
+  getRsvps,
+  matchInvitees,
 } from "@/lib/repo";
 import { appUrl, dateDe, euro } from "@/lib/format";
 import { ShareBox } from "@/components/ShareBox";
@@ -25,6 +27,7 @@ import {
   archiveList,
   packAgain,
   releaseReservation,
+  saveInvitees,
   copyOpenItems,
   deleteItem,
   markReceivedAsOwned,
@@ -58,6 +61,13 @@ export default async function ListPage({
       ? ` Budget pro Geschenk: ${list.budget_min ? euro(list.budget_min) : ""}${list.budget_max ? " – " + euro(list.budget_max) : ""}.`
       : "";
   const shareText = `🎁 ${list.title}${list.event_date ? ` am ${dateDe(list.event_date)}` : ""}! Hier ist die Wunsch-Boxx – einfach ein Geschenk aussuchen und reservieren, ganz ohne Anmeldung.${budget}`;
+  const rsvps = getRsvps(list.id);
+  const rsvpYes = rsvps.filter((r) => r.status === "yes");
+  const rsvpNo = rsvps.filter((r) => r.status === "no");
+  const kidsTotal = rsvpYes.reduce((n, r) => n + (r.kids ?? 0), 0);
+  const otherGifts = rsvps.filter((r) => r.other_gift).length;
+  const invited = matchInvitees(list.invitees, rsvps.map((r) => r.guest_name));
+  const openInvitees = invited.filter((g) => !g.answered);
   const allReservations = items.flatMap((i) => i.reservations.map((r) => ({ ...r, itemTitle: i.title })));
 
   return (
@@ -72,6 +82,7 @@ export default async function ListPage({
             {OCCASIONS[list.occasion]}
             {recipient && ` · für ${recipient.name}`}
             {list.event_date && ` · ${dateDe(list.event_date)}`}
+            {list.event_time && ` · ${list.event_time} Uhr`}
             {list.archived ? " · archiviert" : ""}
           </p>
         </div>
@@ -253,6 +264,50 @@ export default async function ListPage({
             </article>
           );
         })}
+      </section>
+
+      <section id="gaeste" className="card space-y-4" aria-labelledby="gaeste-h">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="gaeste-h" className="flex items-center gap-3 text-lg"><IconBubble name="users" /> Gäste & Zusagen</h2>
+          <div className="flex flex-wrap gap-1.5">
+            <span className="chip chip-ok">{rsvpYes.length} kommen{kidsTotal ? ` · ${kidsTotal} ${kidsTotal === 1 ? "Kind" : "Kinder"}` : ""}</span>
+            {rsvpNo.length > 0 && <span className="chip">{rsvpNo.length} Absagen</span>}
+            {openInvitees.length > 0 && <span className="chip chip-pink">{openInvitees.length} ohne Rückmeldung</span>}
+            {showStatus && otherGifts > 0 && <span className="chip">{otherGifts} schenken etwas anderes</span>}
+          </div>
+        </div>
+        {rsvps.length === 0 ? (
+          <p className="muted text-sm">Noch keine Rückmeldungen. Gäste sagen über denselben Link zu, den du teilst.</p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {rsvps.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-baseline gap-x-2 border-t pt-2 first:border-0 first:pt-0" style={{ borderColor: "var(--line)" }}>
+                <span className="font-semibold">{r.guest_name}</span>
+                <span className={r.status === "yes" ? "chip chip-ok" : "chip"}>{r.status === "yes" ? `kommt${r.kids ? ` · ${r.kids} ${r.kids === 1 ? "Kind" : "Kinder"}` : ""}` : "kommt nicht"}</span>
+                {showStatus && r.other_gift ? <span className="muted">· schenkt etwas anderes</span> : null}
+                {r.message && <span className="muted">· „{r.message}“</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+        <details className="text-sm" open={!list.invitees}>
+          <summary className="muted cursor-pointer">Gästeliste {list.invitees ? `(${invited.length} eingeladen)` : "anlegen – sehen, wer noch fehlt"}</summary>
+          <form action={saveInvitees} className="mt-3 space-y-2">
+            <input type="hidden" name="list_id" value={list.id} />
+            <label className="label" htmlFor="invitees">Wer ist eingeladen? Ein Name pro Zeile</label>
+            <textarea className="input" id="invitees" name="invitees" rows={4} defaultValue={list.invitees} placeholder={"Ben\nMia\nFamilie Müller"} />
+            <SubmitButton className="btn-ghost">Gästeliste speichern</SubmitButton>
+          </form>
+        </details>
+        {openInvitees.length > 0 && (
+          <div className="space-y-2 rounded-2xl p-3 text-sm" style={{ background: "var(--field)" }}>
+            <p><strong>Noch keine Rückmeldung:</strong> {openInvitees.map((g) => g.name).join(", ")}</p>
+            <a className="btn-ghost" target="_blank" rel="noopener"
+              href={`https://wa.me/?text=${encodeURIComponent(`Kleine Erinnerung: ${list.title}${list.event_date ? ` am ${dateDe(list.event_date)}` : ""} – sagt ihr kurz Bescheid, ob ihr kommt? ${shareUrl}`)}`}>
+              <Icon name="share" /> Erinnerung per WhatsApp
+            </a>
+          </div>
+        )}
       </section>
 
       <section className="card space-y-3" aria-label="Wunsch hinzufügen">

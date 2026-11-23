@@ -58,6 +58,10 @@ export interface List {
   shop_address: string;
   payment_hint: string;
   archived: number;
+  event_time: string;
+  location: string;
+  invitees: string;
+  owner_reminder_stage: number;
 }
 
 export interface Item {
@@ -244,3 +248,23 @@ export function getMemoCounts(userId: number): Record<number, number> {
 }
 
 export { nextVolume, nextYearTitle, plusOneYear } from "./yearly";
+
+// ---------- Zusagen zur Feier ----------
+export interface Rsvp {
+  id: number;
+  list_id: number;
+  token: string;
+  guest_name: string;
+  status: "yes" | "no";
+  kids: number | null;
+  other_gift: number;
+  message: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function getRsvps(listId: number): Rsvp[] {
+  return getDb().prepare("SELECT * FROM rsvps WHERE list_id = ? ORDER BY updated_at DESC").all(listId) as Rsvp[];
+}
+
+export { matchInvitees } from "./guests";

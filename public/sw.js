@@ -1,7 +1,7 @@
 /* Wishboxx Service Worker – macht die App installierbar und offline-tolerant.
    Strategie: Seiten immer frisch vom Server (Listen ändern sich ständig),
    bei Funkloch eine Offline-Seite; statische Dateien aus dem Cache. */
-const VERSION = "wb-v2";
+const VERSION = "wb-v3";
 const STATIC = `${VERSION}-static`;
 const OFFLINE_URL = "/offline.html";
 
@@ -44,4 +44,37 @@ self.addEventListener("fetch", (event) => {
       ),
     );
   }
+});
+
+// Push-Nachrichten an die Boxx-Inhaberin (neue Reservierungen, Zusagen, Erinnerungen)
+self.addEventListener("push", (event) => {
+  let data = { title: "Wishboxx", body: "Es gibt Neuigkeiten in deiner Boxx.", url: "/dashboard" };
+  try {
+    data = { ...data, ...event.data.json() };
+  } catch (e) {}
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: data.tag,
+      data: { url: data.url },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/dashboard";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ("focus" in c) {
+          c.navigate(url);
+          return c.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
 });

@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db";
 import { eventIsOver, getItemsWithStatus, getListByToken, isItemTaken, OCCASIONS } from "@/lib/repo";
 import { dateDe, euro } from "@/lib/format";
 import { ReserveForm } from "@/components/ReserveForm";
+import { RsvpForm, type ExistingRsvp } from "@/components/RsvpForm";
 import { cancelReservation, togglePurchased } from "@/app/actions";
 import { Icon, IconBubble } from "@/components/Icon";
 
@@ -60,6 +61,10 @@ export default async function GuestPage({
     list.reveal_mode === "full"
       ? "Nur die Familie sieht deinen Namen – für die Danke-Liste. Andere Gäste sehen ihn nicht."
       : `Nur für die Danke-Liste der Familie. Andere Gäste sehen deinen Namen nicht${list.reveal_mode === "surprise" ? `, und ${childName} erfährt erst nach dem Fest, wer was schenkt` : ""}.`;
+  const rsvpToken = jar.get(`wb_r_${token}`)?.value;
+  const myRsvp = rsvpToken
+    ? (getDb().prepare("SELECT guest_name, status, kids, other_gift, message FROM rsvps WHERE token = ? AND list_id = ?").get(rsvpToken, list.id) as ExistingRsvp | undefined) ?? null
+    : null;
   const myTokens = new Set((jar.get(`wb_g_${token}`)?.value ?? "").split(".").filter(Boolean));
   const all = getItemsWithStatus(list.id);
   const visibleFilters = FILTERS.filter(
@@ -90,6 +95,7 @@ export default async function GuestPage({
         <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold"
           style={{ background: "color-mix(in srgb, var(--card) 70%, transparent)" }}>
           <Icon name="gift" size={16} /> {OCCASIONS[list.occasion]}{list.event_date && ` · ${dateDe(list.event_date)}`}
+          {list.event_time && ` · ${list.event_time} Uhr`}
         </span>
         <h1 className="max-w-2xl text-3xl leading-tight sm:text-5xl">
           {recipientName ? <>{list.title} – </> : null}
@@ -102,6 +108,9 @@ export default async function GuestPage({
           <span className="inline-flex items-center gap-2"><span className="dot" />ohne Anmeldung</span>
           {list.reveal_mode !== "full" && <span className="inline-flex items-center gap-2"><span className="dot" />bleibt eine Überraschung</span>}
         </div>
+        {list.location && (
+          <p className="inline-flex items-center gap-2 text-sm"><Icon name="home" size={16} /> {list.location}</p>
+        )}
         {list.shop_name && (
           <p className="max-w-md text-sm">
             <Icon name="store" size={16} className="mr-1 inline align-[-3px]" />
@@ -126,6 +135,13 @@ export default async function GuestPage({
           Du siehst deine eigene Liste als Gast. {hideStatus && "Überraschungsmodus: Reservierungen werden ausgeblendet."}{" "}
           <Link className="underline" href={`/lists/${list.id}`}>Zur Verwaltung</Link>
         </p>
+      )}
+
+      {!isOwner && (
+        <section className="card space-y-3" aria-labelledby="rsvp-h">
+          <h2 id="rsvp-h" className="text-lg">Kommt ihr{list.occasion === "birthday" ? " zur Feier" : ""}?</h2>
+          <RsvpForm listToken={token} existing={myRsvp} defaultName={rememberedName} childName={recipientName ?? "das Kind"} />
+        </section>
       )}
 
       {mine.length > 0 && (
