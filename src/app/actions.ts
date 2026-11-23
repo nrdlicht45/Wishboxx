@@ -39,9 +39,11 @@ import {
   type Item,
   type Recipient,
   getRsvps,
+  isClosedForGuests,
 } from "@/lib/repo";
 import { mailConfigured, sendMail } from "@/lib/mailer";
 import { pushToUser } from "@/lib/push";
+import { moveOpenToMemo } from "@/lib/lifecycle";
 import { recognizeProduct, type RecognizedProduct } from "@/lib/vision";
 import { MAX_UPLOAD_BYTES, saveUpload, sniffImage, UPLOAD_PATH_RE } from "@/lib/uploads";
 import { appUrl, dateDe } from "@/lib/format";
@@ -221,20 +223,29 @@ export async function regenerateShareLink(fd: FormData) {
 }
 
 /** Offene Wünsche in eine andere Liste übernehmen (z.B. Geburtstag → Weihnachten). */
-export async function copyOpenItems(fd: FormData) {
+/** Offene Wünsche (ohne Reservierung) in eine andere Boxx VERSCHIEBEN – aus dieser Boxx verschwinden sie. */
+export async function moveOpenItems(fd: FormData) {
   const user = await requireUser();
-  const from = Number(fd.get("id"));
-  const to = Number(fd.get("target_id"));
-  if (!getList(from, user.id) || !getList(to, user.id)) return;
-  const open = getItemsWithStatus(from).filter((i) => !isItemTaken(i) && i.reservations.length === 0);
-  const ins = getDb().prepare(
-    `INSERT INTO items (list_id, title, description, url, image_url, price, quantity, priority, source, is_group_gift)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  );
-  for (const i of open) {
-    ins.run(to, i.title, i.description, i.url, i.image_url, i.price, i.quantity, i.priority, i.source, i.is_group_gift);
-  }
-  redirect(`/lists/${to}`);
+  const from = getList(Number(fd.get("id")), user.id);
+  const to = getList(Number(fd.get("target_id")), user.id);
+  if (!from || !to || from.id === to.id) return;
+  const open = getItemsWithStatus(from.id).filter((i) => i.reservations.length === 0);
+  const db = getDb();
+  const move = db.prepare("UPDATE items SET list_id = ? WHERE id = ?");
+  db.transaction(() => open.forEach((i) => move.run(to.id, i.id)))();
+  revalidatePath(`/lists/${from.id}`);
+  revalidatePath(`/k/${from.share_token}`);
+  redirect(`/lists/${to.id}?verschoben=${open.length}`);
+}
+
+/** Offene Wünsche auf den Merkzettel des Kindes – kommen beim nächsten Packen automatisch mit. */
+export async function openItemsToMemo(fd: FormData) {
+  const user = await requireUser();
+  const list = getList(Number(fd.get("id")), user.id);
+  if (!list?.recipient_id) return;
+  const n = moveOpenToMemo(list.id, list.recipient_id);
+  revalidatePath(`/lists/${list.id}`);
+  redirect(`/lists/${list.id}?gemerkt=${n}`);
 }
 
 /** Erhaltene Geschenke in "Hat schon" des Kindes übernehmen → KI schlägt sie nie wieder vor. */
@@ -423,6 +434,7 @@ export async function reserveItem(_: unknown, fd: FormData) {
   const listToken = str(fd, "list_token", 40);
   const list = getListByToken(listToken);
   if (!list) return { error: "Diese Liste existiert nicht mehr." };
+  if (isClosedForGuests(list.event_date)) return { error: "Das Fest ist vorbei – die Boxx ist geschlossen." };
   const itemId = Number(fd.get("item_id"));
   const guestName = str(fd, "guest_name", 80);
   if (!guestName) return { error: "Bitte gib deinen Namen an (z.B. „Mia & Mama Sarah“)." };
@@ -987,6 +999,7 @@ export async function submitRsvp(_: unknown, fd: FormData): Promise<RsvpState> {
   const listToken = str(fd, "list_token", 40);
   const list = getListByToken(listToken);
   if (!list) return { error: "Diese Einladung gibt es nicht mehr." };
+  if (isClosedForGuests(list.event_date)) return { error: "Das Fest ist vorbei – Rückmeldungen sind geschlossen." };
   const name = str(fd, "guest_name", 80);
   if (!name) return { error: "Bitte gib an, wer antwortet (z.B. „Ben & Mama Julia“)." };
   const status = str(fd, "status") === "no" ? "no" : "yes";

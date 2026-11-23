@@ -165,3 +165,13 @@ test("Gästeliste wird mit Rückmeldungen abgeglichen", () => {
   const r2 = matchInvitees("Ben, Mia", ["mia"]);
   assert.deepEqual(r2.map((x) => x.answered), [false, true]);
 });
+
+import { daysSince, isClosedForGuests, closingDate } from "../src/lib/yearly.ts";
+test("Boxx schließt 3 Tage nach dem Fest für Gäste", () => {
+  const now = new Date(2026, 11, 14); // 14.12.
+  assert.equal(daysSince("2026-12-12", now), 2);
+  assert.equal(isClosedForGuests("2026-12-12", now), false);
+  assert.equal(isClosedForGuests("2026-12-11", now), true);
+  assert.equal(isClosedForGuests(null, now), false);
+  assert.equal(closingDate("2026-12-30"), "2027-01-02");
+});

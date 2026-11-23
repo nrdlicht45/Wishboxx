@@ -23,3 +23,29 @@ export function nextVolume(title: string): string {
   if (m) return title.replace(m[0], `${m[1]} ${Number(m[2]) + 1}`);
   return `${title} – Fortsetzung`;
 }
+
+/** Lebenszyklus einer Boxx nach dem Fest (Tage relativ zum Fest-Datum). */
+export const CLOSE_AFTER_DAYS = 3; // Gäste-Link schließt 3 Tage nach dem Fest
+export const ARCHIVE_AFTER_DAYS = 30; // automatisch archivieren, offene Wünsche → Merkzettel
+
+/** Tage seit dem Fest (positiv = vorbei), null ohne Datum. */
+export function daysSince(eventDate: string | null, now = new Date()): number | null {
+  if (!eventDate) return null;
+  const [y, m, d] = eventDate.split("-").map(Number);
+  const event = Date.UTC(y, m - 1, d);
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((today - event) / 864e5);
+}
+
+/** Ist der Gäste-Link geschlossen? */
+export function isClosedForGuests(eventDate: string | null, now = new Date()): boolean {
+  const s = daysSince(eventDate, now);
+  return s != null && s >= CLOSE_AFTER_DAYS;
+}
+
+/** Datum, an dem der Gäste-Link schließt (YYYY-MM-DD). */
+export function closingDate(eventDate: string | null): string | null {
+  if (!eventDate) return null;
+  const [y, m, d] = eventDate.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + CLOSE_AFTER_DAYS)).toISOString().slice(0, 10);
+}

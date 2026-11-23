@@ -15,6 +15,9 @@ import {
   plusOneYear,
   getRsvps,
   matchInvitees,
+  isClosedForGuests,
+  closingDate,
+  ARCHIVE_AFTER_DAYS,
 } from "@/lib/repo";
 import { appUrl, dateDe, euro } from "@/lib/format";
 import { ShareBox } from "@/components/ShareBox";
@@ -28,7 +31,8 @@ import {
   packAgain,
   releaseReservation,
   saveInvitees,
-  copyOpenItems,
+  moveOpenItems,
+  openItemsToMemo,
   deleteItem,
   markReceivedAsOwned,
   regenerateShareLink,
@@ -43,9 +47,9 @@ export default async function ListPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ neu?: string; sichern?: string; schon?: string; v?: string }>;
+  searchParams: Promise<{ neu?: string; sichern?: string; schon?: string; v?: string; verschoben?: string; gemerkt?: string }>;
 }) {
-  const { neu, sichern, schon, v } = await searchParams;
+  const { neu, sichern, schon, v, verschoben, gemerkt } = await searchParams;
   const user = await requireUser();
   const list = getList(Number((await params).id), user.id);
   if (!list) notFound();
@@ -71,6 +75,9 @@ export default async function ListPage({
   // Anzahl der KI-Vorschläge kommt beim Anlegen über die URL (übernommene Wünsche zählen nicht mit)
   const aiCount = Math.min(Number(v ?? 0) || 0, items.length);
   const ownCount = items.length - aiCount;
+  const openItems = items.filter((i) => i.reservations.length === 0);
+  const closed = isClosedForGuests(list.event_date);
+  const archiveDate = list.event_date ? new Date(new Date(list.event_date).getTime() + ARCHIVE_AFTER_DAYS * 864e5).toISOString().slice(0, 10) : null;
   const allReservations = items.flatMap((i) => i.reservations.map((r) => ({ ...r, itemTitle: i.title })));
 
   return (
@@ -102,6 +109,12 @@ export default async function ListPage({
         </div>
       </div>
 
+      {verschoben && (
+        <p className="chip chip-ok" style={{ whiteSpace: "normal" }}>{verschoben} {verschoben === "1" ? "Wunsch" : "Wünsche"} hierher verschoben.</p>
+      )}
+      {gemerkt && (
+        <p className="chip chip-ok" style={{ whiteSpace: "normal" }}>{gemerkt} {gemerkt === "1" ? "Wunsch steht" : "Wünsche stehen"} jetzt auf dem Merkzettel und {gemerkt === "1" ? "kommt" : "kommen"} beim nächsten Packen automatisch mit.</p>
+      )}
       {schon && (
         <p className="chip" style={{ whiteSpace: "normal" }}>Die Boxx fürs nächste Mal gibt es schon – hier ist sie. Ergänze einfach neue Wünsche.</p>
       )}
@@ -336,6 +349,11 @@ export default async function ListPage({
 
       <section className="card space-y-3">
         <h2 className="font-bold">Mit Gästen teilen</h2>
+        {list.event_date && (
+          <p className="muted text-xs">
+            {closed ? "Der Gäste-Link ist geschlossen – das Fest ist vorbei." : `Gäste können bis ${dateDe(closingDate(list.event_date))} reservieren und zusagen, danach schließt der Link automatisch.`}
+          </p>
+        )}
         <ShareBox url={shareUrl} text={shareText} />
         <form action={regenerateShareLink} className="text-xs">
           <input type="hidden" name="id" value={list.id} />
@@ -405,16 +423,39 @@ export default async function ListPage({
         </section>
       )}
 
-      {otherLists.length > 0 && (
-        <section className="card">
-          <h2 className="mb-2">Offene Wünsche in andere Liste übernehmen</h2>
-          <form action={copyOpenItems} className="flex flex-wrap gap-2">
-            <input type="hidden" name="id" value={list.id} />
-            <select className="input max-w-xs" name="target_id" aria-label="Zielliste">
-              {otherLists.map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}
-            </select>
-            <SubmitButton className="btn-ghost">Übernehmen</SubmitButton>
-          </form>
+      {openItems.length > 0 && (otherLists.length > 0 || recipient) && (
+        <section id="offen" className="card space-y-3">
+          <h2 className="flex items-center gap-3 text-lg">
+            <IconBubble name="calendar" />
+            {over ? `Fest vorbei – ${openItems.length} ${openItems.length === 1 ? "Wunsch ist" : "Wünsche sind"} offen` : "Offene Wünsche verschieben"}
+          </h2>
+          {over && (
+            <p className="muted text-sm">
+              {closed ? "Der Gäste-Link ist geschlossen." : `Der Gäste-Link schließt am ${dateDe(closingDate(list.event_date))}.`}{" "}
+              {!list.archived && `Am ${dateDe(archiveDate)} archiviert sich die Boxx – offene Wünsche landen dann automatisch auf ${recipient ? `${recipient.name}s` : "dem"} Merkzettel.`}
+            </p>
+          )}
+          <div className="flex flex-wrap items-end gap-2">
+            {recipient && (
+              <form action={openItemsToMemo}>
+                <input type="hidden" name="id" value={list.id} />
+                <SubmitButton className="btn"><Icon name="bulb" /> Auf {recipient.name}s Merkzettel</SubmitButton>
+              </form>
+            )}
+            {otherLists.length > 0 && (
+              <form action={moveOpenItems} className="flex flex-wrap items-end gap-2">
+                <input type="hidden" name="id" value={list.id} />
+                <div>
+                  <label className="label" htmlFor="move-target">oder verschieben nach</label>
+                  <select className="input" id="move-target" name="target_id">
+                    {otherLists.map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}
+                  </select>
+                </div>
+                <SubmitButton className="btn-ghost">Verschieben</SubmitButton>
+              </form>
+            )}
+          </div>
+          <p className="muted text-xs">Verschoben werden nur Wünsche, die niemand reserviert hat.</p>
         </section>
       )}
     </div>

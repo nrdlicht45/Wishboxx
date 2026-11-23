@@ -62,6 +62,7 @@ export interface List {
   location: string;
   invitees: string;
   owner_reminder_stage: number;
+  after_stage: number;
 }
 
 export interface Item {
@@ -247,7 +248,7 @@ export function getMemoCounts(userId: number): Record<number, number> {
   return Object.fromEntries(rows.map((r) => [r.id, r.c]));
 }
 
-export { nextVolume, nextYearTitle, plusOneYear } from "./yearly";
+export { nextVolume, nextYearTitle, plusOneYear, daysSince, isClosedForGuests, closingDate, CLOSE_AFTER_DAYS, ARCHIVE_AFTER_DAYS } from "./yearly";
 
 // ---------- Zusagen zur Feier ----------
 export interface Rsvp {

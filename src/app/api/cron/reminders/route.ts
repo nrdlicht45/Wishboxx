@@ -4,6 +4,7 @@ import { reminderDue, daysUntil } from "@/lib/reminders";
 import { appUrl, dateDe } from "@/lib/format";
 import { pushToUser, hasPush } from "@/lib/push";
 import { ownerSummary } from "@/lib/summary";
+import { afterEventJob } from "@/lib/lifecycle";
 
 /** Erinnerung an die Boxx-Inhaberin: 14, 7 und 2 Tage vor dem Fest. */
 const OWNER_STAGES = [
@@ -101,5 +102,6 @@ export async function GET(req: Request) {
     }
   }
   const owners = await remindOwners();
-  return Response.json({ checked: rows.length, sent, owners });
+  const after = await afterEventJob();
+  return Response.json({ checked: rows.length, sent, owners, after });
 }

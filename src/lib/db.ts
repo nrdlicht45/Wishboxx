@@ -213,6 +213,8 @@ const COLUMN_MIGRATIONS: [table: string, column: string, ddl: string][] = [
   ["lists", "location", "TEXT NOT NULL DEFAULT ''"],
   ["lists", "invitees", "TEXT NOT NULL DEFAULT ''"],
   ["lists", "owner_reminder_stage", "INTEGER NOT NULL DEFAULT 0"],
+  // Nach dem Fest: 1 = „Wie war's?“-Erinnerung gesendet, 2 = Archiv-Vorwarnung gesendet
+  ["lists", "after_stage", "INTEGER NOT NULL DEFAULT 0"],
 ];
 
 function migrate(db: Database.Database) {

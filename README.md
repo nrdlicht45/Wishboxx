@@ -44,6 +44,18 @@ Neue Wünsche kommen über **ein einziges Feld**: Link einfügen, Stichwort tipp
   Reservierungen und Zusagen (Überraschungsmodus wird respektiert) und eine Erinnerung 14, 7 und 2 Tage vor dem Fest
   mit dem Stand. Ohne Push-Abo kommt die Erinnerung per E-Mail. Die Push-Schlüssel erzeugt die App selbst.
 
+## Nach dem Fest – automatisch aufgeräumt
+
+| Wann | Was passiert |
+|---|---|
+| Tag 1 | Push/E-Mail an die Inhaberin: „Wie war's? N Wünsche offen – auf den Merkzettel oder in eine andere Boxx verschieben?“ |
+| Tag 3 | Gäste-Link schließt: keine neuen Reservierungen und Zusagen mehr, Gäste sehen einen Dankes-Hinweis |
+| Tag 27 | Vorwarnung: „wird in 3 Tagen archiviert“ |
+| Tag 30 | Offene Wünsche landen auf dem Merkzettel des Kindes, die Boxx wird archiviert |
+
+Auf der Boxx gibt es dafür den Bereich **„Offene Wünsche“**: mit einem Tipp auf den Merkzettel oder in eine andere Boxx
+verschieben (z.B. vom Geburtstag nach Weihnachten). Reservierte Wünsche bleiben, wo sie sind.
+
 ## Wunsch-Gedächtnis pro Kind
 
 - **Merkzettel:** Bei jedem Wunsch „Fortsetzung merken“ (schlägt z.B. „Band 2“ vor) oder freie Ideen im Kinderprofil

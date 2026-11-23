@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { eventIsOver, getItemsWithStatus, getListByToken, isItemTaken, OCCASIONS } from "@/lib/repo";
+import { eventIsOver, getItemsWithStatus, getListByToken, isClosedForGuests, isItemTaken, OCCASIONS } from "@/lib/repo";
 import { dateDe, euro } from "@/lib/format";
 import { ReserveForm } from "@/components/ReserveForm";
 import { RsvpForm, type ExistingRsvp } from "@/components/RsvpForm";
@@ -50,6 +50,7 @@ export default async function GuestPage({
   const user = await getCurrentUser();
   const isOwner = user?.id === list.user_id;
   const hideStatus = isOwner && list.reveal_mode === "surprise" && !eventIsOver(list);
+  const closed = isClosedForGuests(list.event_date);
   const recipientName = list.recipient_id
     ? (getDb().prepare("SELECT name FROM recipients WHERE id = ?").get(list.recipient_id) as { name: string } | undefined)?.name
     : undefined;
@@ -137,7 +138,14 @@ export default async function GuestPage({
         </p>
       )}
 
-      {!isOwner && (
+      {closed && (
+        <section className="card space-y-1 text-center">
+          <p className="display text-xl">Das Fest ist vorbei – danke fürs Mitfeiern!</p>
+          <p className="muted text-sm">Die Boxx ist geschlossen. Reservieren und Zusagen geht nicht mehr.</p>
+        </section>
+      )}
+
+      {!isOwner && !closed && (
         <section className="card space-y-3" aria-labelledby="rsvp-h">
           <h2 id="rsvp-h" className="text-lg">Kommt ihr{list.occasion === "birthday" ? " zur Feier" : ""}?</h2>
           <RsvpForm listToken={token} existing={myRsvp} defaultName={rememberedName} childName={recipientName ?? "das Kind"} />
@@ -236,7 +244,7 @@ export default async function GuestPage({
                   </>
                 )}
                 {!mineR && taken && <span className="chip chip-ok"><Icon name="check" size={13} /> Schon vergeben</span>}
-                {!taken && !hideStatus && !(mineR && !it.is_group_gift) && (
+                {!closed && !taken && !hideStatus && !(mineR && !it.is_group_gift) && (
                   <ReserveForm listToken={token} itemId={it.id} groupGift={!!it.is_group_gift} remaining={remaining} hasDate={!!list.event_date}
                     defaultName={rememberedName} privacyHint={privacyHint} />
                 )}
